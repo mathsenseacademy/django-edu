@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure--f8+(nrp03iws5img%$s2k5_ba_2az*yqa7(7^i&@)m#movqd8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['http://13.200.225.145:8000', 'http://www.mathsenseacademy.org/']
+# ALLOWED_HOSTS = ["13.203.226.144"]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "127.0.0.1:7000"]
 
 
 # Application definition
@@ -38,8 +39,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',
     'corsheaders',
     'launch',
+    'student_user',
+    'administrator',
 
 ]
 
@@ -55,6 +59,14 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'django_edu_proj.urls'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'administrator.authentication.AdminJWTAuthentication',
+    )
+}
+
+AUTH_USER_MODEL = 'administrator.Administrator'
 
 TEMPLATES = [
     {
