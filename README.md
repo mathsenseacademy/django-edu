@@ -1,1 +1,2 @@
 "# django-edu" 
+ok
