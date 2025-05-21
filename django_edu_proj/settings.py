@@ -27,7 +27,10 @@ DEBUG = True
 
 # ALLOWED_HOSTS = ["13.203.226.144"]
 ALLOWED_HOSTS = ["127.0.0.1", "localhost", "127.0.0.1:7000"]
-
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  
+    "http://127.0.0.1:3000",  
+]
 
 # Application definition
 
@@ -41,10 +44,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-    'launch',
+    'launch',  #testing app
     'student_user',
     'administrator',
-
+    'examportal',
 ]
 
 MIDDLEWARE = [
@@ -89,10 +92,20 @@ WSGI_APPLICATION = 'django_edu_proj.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'eduapp',
+        'USER': 'root',
+        'PASSWORD': 'root',
+        'HOST': 'localhost',  # Or your DB host (e.g., '127.0.0.1', or AWS RDS endpoint)
+        'PORT': '3306',        # Default MySQL port
     }
 }
 
@@ -137,3 +150,16 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# settings.py
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.hostinger.com'           # ✅ Hostinger SMTP server
+EMAIL_HOST = 'smtp.hostinger.com'           # ✅ Hostinger SMTP server
+# EMAIL_PORT = 587                            # Or 465 if using SSL
+EMAIL_PORT = 465                            # Or 465 if using SSL
+EMAIL_USE_TLS = False                        # Use True for port 587; False + SSL for 465
+EMAIL_HOST_USER = 'mathsenseacademy.in'      # ✅ Your full email address
+EMAIL_HOST_PASSWORD = 'suvadip#Math25' # ✅ Email password or app password
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

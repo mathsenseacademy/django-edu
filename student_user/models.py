@@ -24,6 +24,8 @@ class Student(models.Model):
     registered_at = models.DateTimeField(auto_now_add=True)
 
     student_id = models.CharField(max_length=20, unique=True, blank=True)
+    email = models.EmailField(unique=True)
+    is_verified = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         is_new = self._state.adding

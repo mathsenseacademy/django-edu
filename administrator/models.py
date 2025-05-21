@@ -50,3 +50,22 @@ class Administrator(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+
+class CourseType(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class Course(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    type = models.ForeignKey(CourseType, on_delete=models.CASCADE, related_name='courses')
+    student_class = models.CharField(max_length=50)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
