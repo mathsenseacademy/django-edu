@@ -118,7 +118,8 @@ def create_answer(request):
     answer = input_data.get('answer')
     is_correct = input_data.get('is_correct', 0)  # Default to 0 if not provided
     # Check if the question ID exists
-    sql = f"SELECT * FROM examportal_questions WHERE ID = {question_id} AND is_active = 1"
+    sql = f"SELECT * FROM eduapp.examportal_questions WHERE ID = {question_id} AND is_active = 1"
+    print(f"first sql: {sql}")  
     try:
         cursor = connection.cursor()
         cursor.execute(sql) 
@@ -133,10 +134,11 @@ def create_answer(request):
     if not question:
         return Response({"error": "Question not found or inactive"}, status=status.HTTP_404_NOT_FOUND)
     # check count of answers on the question is less than or equal to option count
-    sql = f"SELECT COUNT(*) FROM examportal_answers WHERE questionid = {question_id} AND is_active = 1"   
+    sql_count_of_answer = f"SELECT COUNT(*) FROM eduapp.examportal_answer WHERE questionID = {question_id} AND is_active = 1"  
+    print(f"second sql: {sql_count_of_answer}") 
     try:
         cursor = connection.cursor()
-        cursor.execute(sql)
+        cursor.execute(sql_count_of_answer)
         answer_count = cursor.fetchone()[0]
     except Exception as e:
         connection.rollback()
@@ -145,15 +147,17 @@ def create_answer(request):
     finally:
         cursor.close()
     # Check if the answer count exceeds the option count
-    if answer_count >= question[1]:
+    print(f"question[1] :: {question[1]}")
+    if answer_count >= question[2]:
         return Response({"error": "Answer limit reached for this question"}, status=status.HTTP_400_BAD_REQUEST)
     
     # Insert the answer into the database
     # Check if the answer already exists for the question
-    sql = f"SELECT * FROM examportal_answers WHERE questionid = {question_id} AND answer = '{answer}'"
+    sql_exist_anser_check = f"SELECT * FROM eduapp.examportal_answer WHERE questionID = {question_id} AND answer = '{answer}'"
+    print(f"third sql: {sql_exist_anser_check}")
     try:
         cursor = connection.cursor()
-        cursor.execute(sql)
+        cursor.execute(sql_exist_anser_check)
         existing_answer = cursor.fetchone()
     except Exception as e:
         connection.rollback()
@@ -165,12 +169,13 @@ def create_answer(request):
     if existing_answer:
         return Response({"error": "Answer already exists for this question"}, status=status.HTTP_400_BAD_REQUEST)
     # Insert the new answer
-    sql = f"""INSERT INTO examportal_answers (questionid, answer, is_correct, is_active) 
+    insert_answer_sql = f"""INSERT INTO eduapp.examportal_answer (questionID, answer, is_correct, is_active) 
                 VALUES ({question_id}, '{answer}', {is_correct},1)"""
+    print(f"fourth sql: {insert_answer_sql}")
     try:
-        cursor.execute(sql)
+   
         cursor = connection.cursor()
-        cursor.execute(sql)
+        cursor.execute(insert_answer_sql)
         connection.commit()
         cursor.close()
     except Exception as e:
