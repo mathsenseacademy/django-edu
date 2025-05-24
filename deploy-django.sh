@@ -98,12 +98,16 @@ EOL
 
 # Configure Nginx
 log "Configuring Nginx"
-sudo tee /etc/nginx/sites-available/django-app > /dev/null <<'EOL'
+cat > /tmp/nginx-config << 'EOF'
 server {
     listen 80;
-    server_name $SERVER_NAME;
+    server_name ${SERVER_NAME};
 
-    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /favicon.ico { 
+        access_log off; 
+        log_not_found off; 
+    }
+    
     location /static/ {
         root /var/www/django-app;
     }
@@ -113,7 +117,9 @@ server {
         proxy_pass http://unix:/var/www/django-app/edu.sock;
     }
 }
-EOL
+EOF
+
+sudo mv /tmp/nginx-config /etc/nginx/sites-available/django-app
 
 # Enable and restart services
 log "Enabling and restarting services"
