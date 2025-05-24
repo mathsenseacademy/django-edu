@@ -45,14 +45,20 @@ sudo apt-get install -y python3 python3-pip git
 
 # Clone/Update repository
 log "Cloning/Updating repository"
-cd /var/www
-if [ -d "django-app" ]; then
-    cd django-app
-    git fetch origin
-    git reset --hard origin/main
+if [ ! -d "$DJANGO_APP_DIR" ]; then
+    log "Creating application directory"
+    sudo mkdir -p "$DJANGO_APP_DIR"
+    sudo chown $DJANGO_USER:$DJANGO_GROUP "$DJANGO_APP_DIR"
+fi
+
+cd "$DJANGO_APP_DIR"
+if [ -d ".git" ]; then
+    log "Updating existing repository"
+    sudo -u $DJANGO_USER git fetch origin
+    sudo -u $DJANGO_USER git reset --hard origin/main
 else
-    git clone https://github.com/kousikmresearch/django-edu.git django-app
-    cd django-app
+    log "Cloning new repository"
+    sudo -u $DJANGO_USER git clone https://github.com/kousikmresearch/django-edu.git .
 fi
 
 # Install Python dependencies
