@@ -41,33 +41,7 @@ sudo mkdir -p "$DJANGO_APP_DIR" "$BACKUP_DIR" "$NGINX_DIR" "$LOG_DIR"
 # Install dependencies
 log "Installing dependencies"
 sudo apt-get update
-sudo apt-get install -y python3 python3-pip git default-mysql-server default-mysql-client
-
-# Configure MySQL
-log "Configuring MySQL"
-# Ensure MySQL service is running
-sudo systemctl start mysql
-sudo systemctl enable mysql
-
-# Wait for MySQL to be ready
-log "Waiting for MySQL to be ready..."
-for i in {1..30}; do
-    if sudo mysqladmin ping -h localhost --silent; then
-        break
-    fi
-    if [ $i -eq 30 ]; then
-        log "MySQL failed to start after 30 seconds"
-        exit 1
-    fi
-    sleep 1
-done
-
-# Now configure MySQL
-log "Creating database and user"
-sudo mysql -e "CREATE DATABASE IF NOT EXISTS eduapp;"
-sudo mysql -e "CREATE USER IF NOT EXISTS 'eduapp'@'localhost' IDENTIFIED BY 'eduapp';"
-sudo mysql -e "GRANT ALL PRIVILEGES ON eduapp.* TO 'eduapp'@'localhost';"
-sudo mysql -e "FLUSH PRIVILEGES;"
+sudo apt-get install -y python3 python3-pip git
 
 # Clone/Update repository
 log "Cloning/Updating repository"
@@ -87,6 +61,8 @@ sudo pip3 install -r requirements.txt
 
 # Configure Django
 log "Configuring Django"
+# Update database settings to use SQLite
+sed -i 's/DATABASES = {.*}/DATABASES = {\n    "default": {\n        "ENGINE": "django.db.backends.sqlite3",\n        "NAME": BASE_DIR \/ "db.sqlite3",\n    }\n}/' edu/settings.py
 sed -i 's/DEBUG = True/DEBUG = False/' edu/settings.py
 sed -i 's/ALLOWED_HOSTS = \[\]/ALLOWED_HOSTS = \[\"*\"\]/' edu/settings.py
 
