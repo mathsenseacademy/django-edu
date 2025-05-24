@@ -96,12 +96,12 @@ WSGI_APPLICATION = 'django_edu_proj.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',
@@ -112,17 +112,17 @@ DATABASES = {
 #         'PORT': '3306',        # Default MySQL port
 #     }
 # }
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'eduapp',
-#         'USER': 'db_user',
-#         # 'PASSWORD': 'root',
-#         'PASSWORD': 'TxsL#@qwe',
-#         'HOST': '13.200.225.145',  # Or your DB host (e.g., '127.0.0.1', or AWS RDS endpoint)
-#         'PORT': '3306',        # Default MySQL port
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'eduapp',
+        'USER': 'eduapp',
+        # 'PASSWORD': 'root',
+        'PASSWORD': 'TxsL#@qwe',
+        'HOST': '13.200.225.145',  # Or your DB host (e.g., '127.0.0.1', or AWS RDS endpoint)
+        'PORT': '3306',        # Default MySQL port
+    }
+}
 
 
 # Password validation
