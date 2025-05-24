@@ -117,7 +117,6 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'eduapp',
         'USER': 'eduapp',
-        # 'PASSWORD': 'root',
         'PASSWORD': 'TxsL#@qwe',
         'HOST': '13.200.225.145',  # Or your DB host (e.g., '127.0.0.1', or AWS RDS endpoint)
         'PORT': '3306',        # Default MySQL port
