@@ -11,6 +11,6 @@ urlpatterns = [
     path('getallquestions/', views.getallquestions, name='getallquestions'),
     path('getquestionbyid/', views.getquestionbyid, name='getquestionbyid'),
     # Answer related urls
-    path('createanswer/', views.addanswer, name='create_answer'),
+    path('createanswer/', views.create_answer, name='create_answer'),
     
 ]
