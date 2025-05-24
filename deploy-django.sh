@@ -98,10 +98,10 @@ EOL
 
 # Configure Nginx
 log "Configuring Nginx"
-cat > /tmp/nginx-config << 'EOF'
+cat > /tmp/nginx-config << "EOF"
 server {
     listen 80;
-    server_name ${SERVER_NAME};
+    server_name $SERVER_NAME;
 
     location = /favicon.ico { 
         access_log off; 
