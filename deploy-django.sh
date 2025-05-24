@@ -75,7 +75,7 @@ sudo -u $DJANGO_USER "$DJANGO_APP_DIR/venv/bin/pip" install -r requirements.txt
 # Configure Django
 log "Configuring Django"
 # Update database settings to use SQLite
-sed -i 's/DATABASES = {.*}/DATABASES = {\n    "default": {\n        "ENGINE": "django.db.backends.sqlite3",\n        "NAME": BASE_DIR \/ "db.sqlite3",\n    }\n}/' edu/settings.py
+# sed -i 's/DATABASES = {.*}/DATABASES = {\n    "default": {\n        "ENGINE": "django.db.backends.sqlite3",\n        "NAME": BASE_DIR \/ "db.sqlite3",\n    }\n}/' edu/settings.py
 sed -i 's/DEBUG = True/DEBUG = False/' edu/settings.py
 sed -i 's/ALLOWED_HOSTS = \[\]/ALLOWED_HOSTS = \[\"*\"\]/' edu/settings.py
 
