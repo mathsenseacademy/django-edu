@@ -84,8 +84,8 @@ log "Configuring Django"
 # sudo -u $DJANGO_USER "$DJANGO_APP_DIR/venv/bin/python" manage.py collectstatic --noinput
 
 # Apply migrations
-log "Applying migrations"
-sudo -u $DJANGO_USER "$DJANGO_APP_DIR/venv/bin/python" manage.py migrate
+# log "Applying migrations"
+# sudo -u $DJANGO_USER "$DJANGO_APP_DIR/venv/bin/python" manage.py migrate
 
 # Configure Gunicorn
 log "Configuring Gunicorn"
