@@ -81,8 +81,8 @@ verify_python_dependencies() {
     # Install Django and other required packages
     log "Installing Django and required packages"
     sudo pip3 install django gunicorn psycopg2-binary python-dotenv
-} {
-    log "Verifying Node.js and npm installation"
+} 
+log "Verifying Node.js and npm installation"
     
     # Check and install git
     if ! command -v git &> /dev/null; then
