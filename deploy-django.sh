@@ -80,8 +80,8 @@ log "Configuring Django"
 # sed -i 's/ALLOWED_HOSTS = \[\]/ALLOWED_HOSTS = \[\"*\"\]/' edu/settings.py
 
 # Collect static files
-log "Collecting static files"
-sudo -u $DJANGO_USER "$DJANGO_APP_DIR/venv/bin/python" manage.py collectstatic --noinput
+# log "Collecting static files"
+# sudo -u $DJANGO_USER "$DJANGO_APP_DIR/venv/bin/python" manage.py collectstatic --noinput
 
 # Apply migrations
 log "Applying migrations"
