@@ -31,6 +31,9 @@ handle_error() {
 }
 trap 'handle_error $LINENO' ERR
 
+# Main execution
+log "Starting deployment"
+
 # Create directories
 log "Creating necessary directories"
 sudo mkdir -p "$DJANGO_APP_DIR" "$BACKUP_DIR" "$NGINX_DIR" "$LOG_DIR"
@@ -95,7 +98,7 @@ EOL
 
 # Configure Nginx
 log "Configuring Nginx"
-sudo tee /etc/nginx/sites-available/django-app > /dev/null <<EOL
+sudo tee /etc/nginx/sites-available/django-app > /dev/null <<'EOL'
 server {
     listen 80;
     server_name $SERVER_NAME;
