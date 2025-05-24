@@ -13,7 +13,7 @@ LOG_FILE="$LOG_DIR/django.log"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
 # Default SERVER_NAME (can be overridden by .env file)
-SERVER_NAME="13.200.225.145"  # Using IP address instead of full domain name
+SERVER_NAME="15.207.99.95"  # Using IP address instead of full domain name
 
 # Django configuration
 DJANGO_PORT=7000
