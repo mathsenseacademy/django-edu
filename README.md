@@ -1,3 +1,3 @@
 "# django-edu" 
 
-setup
+setup 2
