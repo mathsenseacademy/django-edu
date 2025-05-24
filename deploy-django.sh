@@ -41,7 +41,13 @@ sudo mkdir -p "$DJANGO_APP_DIR" "$BACKUP_DIR" "$NGINX_DIR" "$LOG_DIR"
 # Install dependencies
 log "Installing dependencies"
 sudo apt-get update
-sudo apt-get install -y python3 python3-pip git
+sudo apt-get install -y python3 python3-pip python3-venv git
+
+# Create and activate virtual environment
+log "Setting up Python virtual environment"
+if [ ! -d "$DJANGO_APP_DIR/venv" ]; then
+    sudo -u $DJANGO_USER python3 -m venv "$DJANGO_APP_DIR/venv"
+fi
 
 # Clone/Update repository
 log "Cloning/Updating repository"
@@ -61,9 +67,10 @@ else
     sudo -u $DJANGO_USER git clone https://github.com/mathsenseacademy/django-edu.git .
 fi
 
-# Install Python dependencies
+# Install Python dependencies in virtual environment
 log "Installing Python dependencies"
-sudo pip3 install -r requirements.txt
+sudo -u $DJANGO_USER "$DJANGO_APP_DIR/venv/bin/pip" install --upgrade pip
+sudo -u $DJANGO_USER "$DJANGO_APP_DIR/venv/bin/pip" install -r requirements.txt
 
 # Configure Django
 log "Configuring Django"
@@ -74,11 +81,11 @@ sed -i 's/ALLOWED_HOSTS = \[\]/ALLOWED_HOSTS = \[\"*\"\]/' edu/settings.py
 
 # Collect static files
 log "Collecting static files"
-python manage.py collectstatic --noinput
+sudo -u $DJANGO_USER "$DJANGO_APP_DIR/venv/bin/python" manage.py collectstatic --noinput
 
 # Apply migrations
 log "Applying migrations"
-python manage.py migrate
+sudo -u $DJANGO_USER "$DJANGO_APP_DIR/venv/bin/python" manage.py migrate
 
 # Configure Gunicorn
 log "Configuring Gunicorn"
@@ -90,8 +97,9 @@ After=network.target
 [Service]
 User=$DJANGO_USER
 Group=$DJANGO_GROUP
-WorkingDirectory=/var/www/django-app
-ExecStart=/usr/local/bin/gunicorn --workers 3 --bind unix:/var/www/django-app/edu.sock edu.wsgi:application
+WorkingDirectory=$DJANGO_APP_DIR
+Environment="PATH=$DJANGO_APP_DIR/venv/bin"
+ExecStart=$DJANGO_APP_DIR/venv/bin/gunicorn --workers 3 --bind unix:$DJANGO_APP_DIR/edu.sock edu.wsgi:application
 
 [Install]
 WantedBy=multi-user.target
