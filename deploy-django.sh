@@ -45,8 +45,27 @@ sudo apt-get install -y python3 python3-pip git default-mysql-server default-mys
 
 # Configure MySQL
 log "Configuring MySQL"
-sudo mysql -e "CREATE DATABASE eduapp;"
-sudo mysql -e "CREATE USER 'eduapp'@'localhost' IDENTIFIED BY 'eduapp';"
+# Ensure MySQL service is running
+sudo systemctl start mysql
+sudo systemctl enable mysql
+
+# Wait for MySQL to be ready
+log "Waiting for MySQL to be ready..."
+for i in {1..30}; do
+    if sudo mysqladmin ping -h localhost --silent; then
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        log "MySQL failed to start after 30 seconds"
+        exit 1
+    fi
+    sleep 1
+done
+
+# Now configure MySQL
+log "Creating database and user"
+sudo mysql -e "CREATE DATABASE IF NOT EXISTS eduapp;"
+sudo mysql -e "CREATE USER IF NOT EXISTS 'eduapp'@'localhost' IDENTIFIED BY 'eduapp';"
 sudo mysql -e "GRANT ALL PRIVILEGES ON eduapp.* TO 'eduapp'@'localhost';"
 sudo mysql -e "FLUSH PRIVILEGES;"
 
