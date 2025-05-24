@@ -58,7 +58,7 @@ if [ -d ".git" ]; then
     sudo -u $DJANGO_USER git reset --hard origin/main
 else
     log "Cloning new repository"
-    sudo -u $DJANGO_USER git clone https://github.com/kousikmresearch/django-edu.git .
+    sudo -u $DJANGO_USER git clone https://github.com/mathsenseacademy/django-edu.git .
 fi
 
 # Install Python dependencies
