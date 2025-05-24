@@ -17,8 +17,10 @@ SERVER_NAME="15.207.99.95"  # Using IP address instead of full domain name
 
 # Django configuration
 DJANGO_PORT=7000
-DJANGO_USER="django"
-DJANGO_GROUP="django"
+# DJANGO_USER="django"
+DJANGO_USER="ubuntu"
+# DJANGO_GROUP="django"
+DJANGO_GROUP="ubuntu"
 
 # Create log directory and file first
 sudo mkdir -p "$LOG_DIR"
