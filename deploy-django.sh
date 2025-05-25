@@ -11,7 +11,7 @@ BACKUP_DIR="/var/www/backups"
 LOG_DIR="/var/log/django"
 
 # Default SERVER_NAME
-SERVER_NAME="15.207.99.95"
+SERVER_NAME="3.108.119.201"
 
 # Django configuration
 DJANGO_PORT=7000
