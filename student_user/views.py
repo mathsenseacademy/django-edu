@@ -49,25 +49,7 @@ def send_otp_email(recipient_email, otp):
 
     return otp
 
-# Student Registration
-# @api_view(['POST'])
-# def student_register(request):
-#     serializer = StudentSerializer(data=request.data)
-#     if serializer.is_valid():
-#         student = serializer.save()
-#         return Response({'id': student.id}, status=status.HTTP_201_CREATED)
-#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# @api_view(['POST'])
-# def send_otp(request):
-#     email = request.data.get('email')
-#     if not email:
-#         return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-#     otp = send_otp_email(email)
-
-#     # Optionally store OTP in DB or cache with expiry
-#     return Response({'message': 'OTP sent to email', 'otp': otp})  # Don't return OTP in production
 
 @api_view(['POST'])
 def student_register_request_otp(request):
