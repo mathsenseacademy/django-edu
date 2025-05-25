@@ -43,7 +43,18 @@ sudo chmod -R 755 "$DJANGO_APP_DIR" "$BACKUP_DIR" "$NGINX_DIR" "$LOG_DIR"
 # Install dependencies
 log "Installing dependencies"
 sudo apt-get update
-sudo apt-get install -y python3 python3-pip python3-venv git
+sudo apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    git \
+    pkg-config \
+    python3-dev \
+    default-libmysqlclient-dev \
+    build-essential \
+    libssl-dev \
+    libffi-dev \
+    python3-setuptools
 
 # Create and activate virtual environment
 log "Setting up Python virtual environment"
