@@ -54,20 +54,26 @@ fi
 
 # Clone/Update repository
 log "Cloning/Updating repository"
-if [ ! -d "$DJANGO_APP_DIR" ]; then
-    log "Creating application directory"
+if [ ! -d "$DJANGO_APP_DIR/.git" ]; then
+    # If directory exists but is not a git repository, backup and remove it
+    if [ -d "$DJANGO_APP_DIR" ]; then
+        log "Backing up existing directory"
+        backup_timestamp=$(date +%Y%m%d_%H%M%S)
+        sudo mv "$DJANGO_APP_DIR" "${DJANGO_APP_DIR}_backup_${backup_timestamp}"
+    fi
+    
+    log "Creating fresh application directory"
     sudo mkdir -p "$DJANGO_APP_DIR"
     sudo chown $DJANGO_USER:$DJANGO_GROUP "$DJANGO_APP_DIR"
-fi
-
-cd "$DJANGO_APP_DIR"
-if [ -d ".git" ]; then
+    
+    log "Cloning new repository"
+    cd "$DJANGO_APP_DIR"
+    sudo -u $DJANGO_USER git clone https://github.com/mathsenseacademy/django-edu.git .
+else
     log "Updating existing repository"
+    cd "$DJANGO_APP_DIR"
     sudo -u $DJANGO_USER git fetch origin
     sudo -u $DJANGO_USER git reset --hard origin/main
-else
-    log "Cloning new repository"
-    sudo -u $DJANGO_USER git clone https://github.com/mathsenseacademy/django-edu.git .
 fi
 
 # Install Python dependencies in virtual environment
