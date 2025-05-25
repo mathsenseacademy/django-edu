@@ -11,7 +11,7 @@ BACKUP_DIR="/var/www/backups"
 LOG_DIR="/var/log/django"
 
 # Default SERVER_NAME
-SERVER_NAME="15.207.99.95"
+SERVER_NAME="3.108.119.201"
 
 # Django configuration
 DJANGO_PORT=7000
@@ -37,34 +37,55 @@ log "Starting deployment"
 # Create directories
 log "Creating necessary directories"
 sudo mkdir -p "$DJANGO_APP_DIR" "$BACKUP_DIR" "$NGINX_DIR" "$LOG_DIR"
+sudo chown -R $DJANGO_USER:$DJANGO_GROUP "$DJANGO_APP_DIR" "$BACKUP_DIR" "$NGINX_DIR" "$LOG_DIR"
+sudo chmod -R 755 "$DJANGO_APP_DIR" "$BACKUP_DIR" "$NGINX_DIR" "$LOG_DIR"
 
 # Install dependencies
 log "Installing dependencies"
 sudo apt-get update
-sudo apt-get install -y python3 python3-pip python3-venv git
+sudo apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    git \
+    pkg-config \
+    python3-dev \
+    default-libmysqlclient-dev \
+    build-essential \
+    libssl-dev \
+    libffi-dev \
+    python3-setuptools \
+    nginx
 
 # Create and activate virtual environment
 log "Setting up Python virtual environment"
 if [ ! -d "$DJANGO_APP_DIR/venv" ]; then
     sudo -u $DJANGO_USER python3 -m venv "$DJANGO_APP_DIR/venv"
+    sudo chown -R $DJANGO_USER:$DJANGO_GROUP "$DJANGO_APP_DIR/venv"
 fi
 
 # Clone/Update repository
 log "Cloning/Updating repository"
-if [ ! -d "$DJANGO_APP_DIR" ]; then
-    log "Creating application directory"
+if [ ! -d "$DJANGO_APP_DIR/.git" ]; then
+    # If directory exists but is not a git repository, backup and remove it
+    if [ -d "$DJANGO_APP_DIR" ]; then
+        log "Backing up existing directory"
+        backup_timestamp=$(date +%Y%m%d_%H%M%S)
+        sudo mv "$DJANGO_APP_DIR" "${DJANGO_APP_DIR}_backup_${backup_timestamp}"
+    fi
+    
+    log "Creating fresh application directory"
     sudo mkdir -p "$DJANGO_APP_DIR"
     sudo chown $DJANGO_USER:$DJANGO_GROUP "$DJANGO_APP_DIR"
-fi
-
-cd "$DJANGO_APP_DIR"
-if [ -d ".git" ]; then
+    
+    log "Cloning new repository"
+    cd "$DJANGO_APP_DIR"
+    sudo -u $DJANGO_USER git clone https://github.com/mathsenseacademy/django-edu.git .
+else
     log "Updating existing repository"
+    cd "$DJANGO_APP_DIR"
     sudo -u $DJANGO_USER git fetch origin
     sudo -u $DJANGO_USER git reset --hard origin/main
-else
-    log "Cloning new repository"
-    sudo -u $DJANGO_USER git clone https://github.com/mathsenseacademy/django-edu.git .
 fi
 
 # Install Python dependencies in virtual environment
@@ -107,6 +128,10 @@ EOL
 
 # Configure Nginx
 log "Configuring Nginx"
+# Ensure Nginx directories exist
+sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+
+# Create Nginx configuration
 cat > /tmp/nginx-config << "EOF"
 server {
     listen 80;
@@ -128,7 +153,20 @@ server {
 }
 EOF
 
+# Ensure proxy_params exists
+if [ ! -f /etc/nginx/proxy_params ]; then
+    sudo tee /etc/nginx/proxy_params > /dev/null << 'EOL'
+proxy_set_header Host $http_host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+EOL
+fi
+
+# Move and set permissions for nginx config
 sudo mv /tmp/nginx-config /etc/nginx/sites-available/django-app
+sudo chown root:root /etc/nginx/sites-available/django-app
+sudo chmod 644 /etc/nginx/sites-available/django-app
 
 # Enable and restart services
 log "Enabling and restarting services"
