@@ -127,6 +127,10 @@ EOL
 
 # Configure Nginx
 log "Configuring Nginx"
+# Ensure Nginx directories exist
+sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+
+# Create Nginx configuration
 cat > /tmp/nginx-config << "EOF"
 server {
     listen 80;
@@ -148,7 +152,20 @@ server {
 }
 EOF
 
+# Ensure proxy_params exists
+if [ ! -f /etc/nginx/proxy_params ]; then
+    sudo tee /etc/nginx/proxy_params > /dev/null << 'EOL'
+proxy_set_header Host $http_host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+EOL
+fi
+
+# Move and set permissions for nginx config
 sudo mv /tmp/nginx-config /etc/nginx/sites-available/django-app
+sudo chown root:root /etc/nginx/sites-available/django-app
+sudo chmod 644 /etc/nginx/sites-available/django-app
 
 # Enable and restart services
 log "Enabling and restarting services"
