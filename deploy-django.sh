@@ -54,7 +54,8 @@ sudo apt-get install -y \
     build-essential \
     libssl-dev \
     libffi-dev \
-    python3-setuptools
+    python3-setuptools \
+    nginx
 
 # Create and activate virtual environment
 log "Setting up Python virtual environment"
