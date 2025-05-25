@@ -47,6 +47,7 @@ sudo apt-get install -y python3 python3-pip python3-venv git
 log "Setting up Python virtual environment"
 if [ ! -d "$DJANGO_APP_DIR/venv" ]; then
     sudo -u $DJANGO_USER python3 -m venv "$DJANGO_APP_DIR/venv"
+     sudo chown $DJANGO_USER:$DJANGO_GROUP "$DJANGO_APP_DIR"
 fi
 
 # Clone/Update repository
