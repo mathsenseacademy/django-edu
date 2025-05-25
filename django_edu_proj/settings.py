@@ -122,6 +122,7 @@ DATABASES = {
         'PORT': '3306',        # Default MySQL port
     }
 }
+# 
 
 
 # Password validation
