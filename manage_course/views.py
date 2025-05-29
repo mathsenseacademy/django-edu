@@ -76,7 +76,7 @@ def edit_course(request):
 def show_course_by_id(request):
     input_data =  JSONParser().parse(request)
     sql = f"""SELECT course_ID, course_name, class_level, category, focus_area FROM eduapp.msa_courses
-              WHERE  AND course_ID = {input_data.get('id')}"""
+              WHERE  course_ID = {input_data.get('id')}"""
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
