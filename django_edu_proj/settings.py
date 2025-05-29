@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'student_user',
     'administrator',
     'examportal',
+    'manage_course',
 ]
 
 MIDDLEWARE = [
