@@ -114,13 +114,23 @@ WSGI_APPLICATION = 'django_edu_proj.wsgi.application'
 #         'PORT': '3306',        # Default MySQL port
 #     }
 # }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'eduapp',
+#         'USER': 'eduapp',
+#         'PASSWORD': 'TxsL#@qwe',
+#         'HOST': '13.200.225.145',  # Or your DB host (e.g., '127.0.0.1', or AWS RDS endpoint)
+#         'PORT': '3306',        # Default MySQL port
+#     }
+# }
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'eduapp',
-        'USER': 'eduapp',
-        'PASSWORD': 'TxsL#@qwe',
-        'HOST': '13.200.225.145',  # Or your DB host (e.g., '127.0.0.1', or AWS RDS endpoint)
+        'USER': 'admin',
+        'PASSWORD': 'eduapp#Password123',
+        'HOST': 'eduapp.cx2ugyw647jj.ap-south-1.rds.amazonaws.com',  # Or your DB host (e.g., '127.0.0.1', or AWS RDS endpoint)
         'PORT': '3306',        # Default MySQL port
     }
 }
