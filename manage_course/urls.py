@@ -10,6 +10,9 @@ urlpatterns = [
     path('showcourseid/', views.show_course_by_id, name='show_course_by_id'),
     path('showallcourse/', views.show_all_courses, name='show_all_batch'),
     path('showallactivatecourse/', views.show_all_activate_courses, name='show_all_activate_batch'),
+    path('all_courses_show_public/', views.all_courses_show_public, name='all_courses_show_public'),
+    path('courses_detail_show_public/', views.courses_detail_show_public, name='courses_detail_show_public'),
+
 
     #course related urls
     # path('createcourses/', views.createcourses, name='create_courses'),
