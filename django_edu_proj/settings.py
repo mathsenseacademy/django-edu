@@ -132,6 +132,9 @@ DATABASES = {
         'PASSWORD': 'eduapp#Password123',
         'HOST': 'eduapp.cx2ugyw647jj.ap-south-1.rds.amazonaws.com',  # Or your DB host (e.g., '127.0.0.1', or AWS RDS endpoint)
         'PORT': '3306',        # Default MySQL port
+        # 'OPTIONS': {
+        #     'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        # },
     }
 }
 # #
