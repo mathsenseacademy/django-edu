@@ -2,11 +2,8 @@ from django.db import connection
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import JSONParser
-
-from student_user.models import Student
-from student_user.serializers import StudentSerializer
 
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
@@ -24,20 +21,32 @@ def create_course(request):
     category_id = input_data.get('category_id')
     show_in_forntpage = input_data.get('show_in_forntpage')
 
-    sql = f"""INSERT INTO `eduapp`.`msa_courses` (`course_name`, `course_subtitle`, `course_image_path`,`course_video_path`, `student_id_of_the_week`, `class_level_id`, `category_id`, `show_in_forntpage`, `is_activate`)
+    sql = f"""INSERT INTO eduapp.msa_course (`course_name`, `course_subtitle`, `course_image_path`,`course_video_path`, `student_id_of_the_week`, `class_level_id`, `category_id`, `show_in_forntpage`, `is_activate`)
                 VALUES
                 ('{course_name}','{course_subtitle}', '{course_image_path}', '{course_video_path}', '{student_id_of_the_week}', '{class_level_id}', '{category_id}', '{show_in_forntpage}', 1);
         """
-    cursor = connection.cursor()
-    cursor.execute(sql)
-    connection.commit()
-    cursor.close()
-    return Response({"message": "Course created successfully"}, status=status.HTTP_201_CREATED)
+    try:
+        cursor = connection.cursor()
+        cursor.execute(sql)
+        connection.commit()
+        cursor.close()
+        return Response({"message": "Course created successfully"}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response({"error": "Failed to add course"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import JSONParser
+from rest_framework.response import Response
+from rest_framework import status
+from django.db import connection
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def edit_course(request):
-    input_data =  JSONParser().parse(request)
+    input_data = JSONParser().parse(request)
     course_name = input_data.get('course_name')
     course_subtitle = input_data.get('course_subtitle')
     course_image_path = input_data.get('course_image_path')
@@ -47,51 +56,54 @@ def edit_course(request):
     category_id = input_data.get('category_id')
     show_in_forntpage = input_data.get('show_in_forntpage')
     isActive = input_data.get('isActive')
-    print(isActive)
-    id = input_data.get('id')
-    if not id:
-        return Response({"error": "ID is required to update a course"}, status=status.HTTP_400_BAD_REQUEST)
-    updatesql = "UPDATE `eduapp`.`msa_courses` SET"
+    ID = input_data.get('id')
 
+    if not ID:
+        return Response({"error": "Course ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    fields = []
     if course_name:
-        updatesql += f"  course_name = '{course_name}',"
+        fields.append(f"course_name = '{course_name}'")
     if course_subtitle:
-        updatesql += f"  course_name = '{course_subtitle}',"
+        fields.append(f"course_subtitle = '{course_subtitle}'")
     if course_image_path:
-        updatesql += f"  course_name = '{course_image_path}',"
+        fields.append(f"course_image_path = '{course_image_path}'")
     if course_video_path:
-        updatesql += f"  course_name = '{course_video_path}',"
+        fields.append(f"course_video_path = '{course_video_path}'")
     if student_id_of_the_week:
-        updatesql += f"  course_name = '{student_id_of_the_week}',"
+        fields.append(f"student_id_of_the_week = '{student_id_of_the_week}'")
     if class_level_id:
-        updatesql += f"  course_name = '{class_level_id}',"
+        fields.append(f"class_level_id = '{class_level_id}'")
     if category_id:
-        updatesql += f"  course_name = '{category_id}',"
-    if show_in_forntpage:
-        updatesql += f"  course_name = '{show_in_forntpage}',"
-   
-    # if isActive:      
-    #     print(isActive)  
-    #     updatesql += f" is_activate = {isActive}"
-    
-    updatesql += f" is_activate = {isActive} WHERE course_ID = {id}"
+        fields.append(f"category_id = '{category_id}'")
+    if show_in_forntpage is not None:
+        fields.append(f"show_in_forntpage = '{show_in_forntpage}'")
+    if isActive is not None:
+        fields.append(f"is_activate = {int(isActive)}")
 
-    print(updatesql)
+    if not fields:
+        return Response({"error": "No fields provided to update"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # if not updatesql.startswith(" SET "):
-    #     return Response({"error": "No fields to update"}, status=status.HTTP_400_BAD_REQUEST)
-    cursor = connection.cursor()
-    cursor.execute(updatesql)
+    # updatesql = f"UPDATE eduapp.msa_courses SET {', '.join(fields)} WHERE ID = {ID};"
+    updatesql = f"UPDATE eduapp.msa_course SET {', '.join(fields)} WHERE ID = {ID};"
+    print(f"sql: {updatesql}")
 
-    connection.commit()
-    cursor.close()
-    return Response({"message": "Course updated successfully"}, status=status.HTTP_200_OK)
+    try:
+        cursor = connection.cursor()
+        cursor.execute(updatesql)
+        connection.commit()
+        cursor.close()
+        return Response({"message": "Course updated successfully"}, status=status.HTTP_200_OK)
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response({"error": "Failed to update course"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def show_course_by_id(request):
     input_data =  JSONParser().parse(request)
-    sql = f"""SELECT course_ID,
+    sql = f"""SELECT ID,
     course_name,
     course_subtitle,
     course_image_path,
@@ -100,8 +112,8 @@ def show_course_by_id(request):
     class_level_id,
     category_id,
     show_in_forntpage
-       FROM eduapp.msa_courses
-              WHERE  course_ID = {input_data.get('id')}"""
+       FROM eduapp.msa_course
+              WHERE  ID = {input_data.get('id')}"""
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
@@ -113,7 +125,7 @@ def show_course_by_id(request):
     batch_list = []
     for row in rows:
         batch_list.append({
-            "course_ID": row[0],
+            "ID": row[0],
             "course_name": row[1],
             "course_subtitle": row[2],
             "course_image_path": row[3],
@@ -129,7 +141,7 @@ def show_course_by_id(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def show_all_courses(request):
-    sql = "SELECT course_ID, course_name, course_subtitle, course_image_path, course_video_path, student_id_of_the_week, class_level_id, category_id, show_in_forntpage FROM eduapp.msa_courses"
+    sql = "SELECT ID, course_name, course_subtitle, course_image_path, course_video_path, student_id_of_the_week, class_level_id, category_id, show_in_forntpage FROM eduapp.msa_course"
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
@@ -141,7 +153,7 @@ def show_all_courses(request):
     batch_list = []
     for row in rows:
         batch_list.append({
-            "course_ID": row[0],
+            "ID": row[0],
             "course_name": row[1],
             "class_level": row[2],
             "category": row[3],
@@ -153,7 +165,7 @@ def show_all_courses(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def show_all_activate_courses(request):
-    sql = "SELECT course_ID, course_name, class_level_id, category_id, student_id_of_the_week FROM eduapp.msa_courses WHERE is_activate = 1"
+    sql = "SELECT ID, course_name, class_level_id, category_id, student_id_of_the_week FROM eduapp.msa_course WHERE is_activate = 1"
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
@@ -165,7 +177,7 @@ def show_all_activate_courses(request):
     batch_list = []
     for row in rows:
         batch_list.append({
-            "course_ID": row[0],
+            "ID": row[0],
             "course_name": row[1],
             "class_level": row[2],
             "category": row[3],
@@ -177,7 +189,7 @@ def show_all_activate_courses(request):
 
 @api_view(['GET'])
 def all_courses_show_public(request):
-    sql = "SELECT  course_name, course_subtitle, course_image_path WHERE show_in_forntpage = 1"
+    sql = "SELECT ID, course_name, course_subtitle, course_image_path FROM eduapp.msa_course WHERE show_in_forntpage = 1"
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
@@ -189,7 +201,7 @@ def all_courses_show_public(request):
     batch_list = []
     for row in rows:
         batch_list.append({
-            "course_ID": row[0],
+            "ID": row[0],
             "course_name": row[1],
             "course_subtitle": row[2],
             "course_image_path": row[3]
@@ -197,36 +209,103 @@ def all_courses_show_public(request):
 
     return Response(batch_list, status=status.HTTP_200_OK)
 
+
+
 @api_view(['POST'])
 def courses_detail_show_public(request):
-    input_data =  JSONParser().parse(request)
-    course_id = input_data.get('course_id')
+    input_data = JSONParser().parse(request)
+    course_id = input_data.get('ID')
+    
     if not course_id:
         return Response({"error": "Course ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    sql = f"""SELECT course_name, course_subtitle, course_image_path, course_video_path, student_id_of_the_week, class_level_id, category_id
-              FROM eduapp.msa_courses
-              WHERE course_ID = {course_id} AND show_in_forntpage = 1"""
-    
     cursor = connection.cursor()
-    cursor.execute(sql)
+
+    # Get main course info with class level name and student details
+    sql = f"""
+        SELECT 
+            c.ID,
+            c.course_name,
+            c.course_subtitle,
+            c.course_image_path,
+            c.course_video_path,
+            c.class_level_id,
+            cl.class_name,
+            c.category_id,
+
+            s.ID AS student_id,
+            s.first_name,
+            s.middle_name,
+            s.last_name,
+            s.student_photo_path
+
+        FROM eduapp.msa_course AS c
+        LEFT JOIN eduapp.msa_class_level AS cl
+            ON c.class_level_id = cl.ID AND cl.is_activate = 1
+        LEFT JOIN eduapp.msa_registerd_student AS s
+            ON c.student_id_of_the_week = s.ID 
+            AND s.is_activate = 1 AND s.is_verified = 1
+        WHERE c.ID = %s AND c.show_in_forntpage = 1
+    """
+    cursor.execute(sql, [course_id]) #this id ic course ID
     row = cursor.fetchone()
-    cursor.close()
 
     if not row:
+        cursor.close()
         return Response({"message": "Course not found or not available for public view"}, status=status.HTTP_404_NOT_FOUND)
 
     course_detail = {
-        "course_name": row[0],
-        "course_subtitle": row[1],
-        "course_image_path": row[2],
-        "course_video_path": row[3],
-        "student_id_of_the_week": row[4],
+        "course_id": row[0],
+        "course_name": row[1],
+        "course_subtitle": row[2],
+        "course_image_path": row[3],
+        "course_video_path": row[4],
         "class_level_id": row[5],
-        "category_id": row[6]
+        "class_name": row[6],
+        "category_id": row[7],
+        "student_of_the_week": {
+            "student_id": row[8],
+            "first_name": row[9],
+            "middle_name": row[10],
+            "last_name": row[11],
+            "student_photo_path": row[12]
+        } if row[8] else None,
+        "curriculums": [],
+        "classroom_essentials": []
     }
 
+    # Fetch curriculums
+    sql_curriculums = """
+        SELECT ID, curriculum_name
+        FROM eduapp.msa_curriculums
+        WHERE course_id = %s AND is_activate = 1
+    """
+    cursor.execute(sql_curriculums, [course_id])
+    curriculum_rows = cursor.fetchall()
+    for r in curriculum_rows:
+        course_detail["curriculums"].append({
+            "curriculum_id": r[0],
+            "curriculum_name": r[1]
+        })
+
+    # Fetch classroom essentials
+    sql_essentials = """
+        SELECT ID, classroom_essentials_name, classroom_essentials_description
+        FROM eduapp.msa_classroom_essentials
+        WHERE course_id = %s AND is_activate = 1
+    """
+    cursor.execute(sql_essentials, [course_id])
+    essentials_rows = cursor.fetchall()
+    for r in essentials_rows:
+        course_detail["classroom_essentials"].append({
+            "classroom_essential_id": r[0],
+            "classroom_essentials_name": r[1],
+            "classroom_essentials_description": r[2]
+        })
+
+    cursor.close()
     return Response(course_detail, status=status.HTTP_200_OK)
+
 
 
 # course_curriculum
@@ -236,13 +315,13 @@ def add_course_curriculum(request):
     if request.method == 'POST':
         input_data = JSONParser().parse(request)
         curriculum_name = input_data.get('curriculum_name')
-        course_id = input_data.get('course_id')
+        ID = input_data.get('ID')
 
-        if not curriculum_name or not course_id:
+        if not curriculum_name or not ID:
             return Response({"error": "Curriculum name and Course ID are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        sql = f"""INSERT INTO eduapp.msa_curriculums (curriculum_name, course_id, is_activate)
-                  VALUES ('{curriculum_name}', {course_id}, 1)"""
+        sql = f"""INSERT INTO eduapp.msa_curriculums (curriculum_name, ID, is_activate)
+                  VALUES ('{curriculum_name}', {ID}, 1)"""
         cursor = connection.cursor()
         cursor.execute(sql)
         connection.commit()
@@ -253,7 +332,7 @@ def add_course_curriculum(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])  
 def show_all_curriculums(request):
-    sql = "SELECT curriculum_id, curriculum_name, course_id, is_activate FROM eduapp.msa_curriculums"
+    sql = "SELECT curriculum_id, curriculum_name, ID, is_activate FROM eduapp.msa_curriculums"
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
@@ -267,7 +346,7 @@ def show_all_curriculums(request):
         curriculum_list.append({
             "curriculum_id": row[0],
             "curriculum_name": row[1],
-            "course_id": row[2],
+            "ID": row[2],
             "is_activate": row[3]
         })
 
@@ -282,7 +361,7 @@ def show_curriculum_by_id(request):
     if not curriculum_id:
         return Response({"error": "Curriculum ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    sql = f"SELECT curriculum_id, curriculum_name, course_id, is_activate FROM eduapp.msa_curriculums WHERE curriculum_id = {curriculum_id}"
+    sql = f"SELECT curriculum_id, curriculum_name, ID, is_activate FROM eduapp.msa_curriculums WHERE curriculum_id = {curriculum_id}"
     cursor = connection.cursor()
     cursor.execute(sql)
     row = cursor.fetchone()
@@ -294,7 +373,7 @@ def show_curriculum_by_id(request):
     curriculum_detail = {
         "curriculum_id": row[0],
         "curriculum_name": row[1],
-        "course_id": row[2],
+        "ID": row[2],
         "is_activate": row[3]
     }
 
@@ -306,7 +385,7 @@ def edit_curriculum(request):
     input_data = JSONParser().parse(request)
     curriculum_id = input_data.get('curriculum_id')
     curriculum_name = input_data.get('curriculum_name')
-    course_id = input_data.get('course_id')
+    ID = input_data.get('ID')
     is_activate = input_data.get('is_activate')
 
     if not curriculum_id:
@@ -316,8 +395,8 @@ def edit_curriculum(request):
 
     if curriculum_name:
         updatesql += f" curriculum_name = '{curriculum_name}',"
-    if course_id:
-        updatesql += f" course_id = {course_id},"
+    if ID:
+        updatesql += f" ID = {ID},"
     if is_activate is not None:
         updatesql += f" is_activate = {is_activate}"
 
@@ -333,7 +412,7 @@ def edit_curriculum(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated]) 
 def show_active_curriculums(request):
-    sql = "SELECT curriculum_id, curriculum_name, course_id FROM eduapp.msa_curriculums WHERE is_activate = 1"
+    sql = "SELECT curriculum_id, curriculum_name, ID FROM eduapp.msa_curriculums WHERE is_activate = 1"
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
@@ -347,7 +426,7 @@ def show_active_curriculums(request):
         curriculum_list.append({
             "curriculum_id": row[0],
             "curriculum_name": row[1],
-            "course_id": row[2]
+            "ID": row[2]
         })
 
     return Response(curriculum_list, status=status.HTTP_200_OK) 
@@ -355,12 +434,12 @@ def show_active_curriculums(request):
 @api_view(['POST'])
 def show_active_curriculums_by_course_id(request):
     input_data = JSONParser().parse(request)
-    course_id = input_data.get('course_id')
+    ID = input_data.get('ID')
     
-    if not course_id:
+    if not ID:
         return Response({"error": "Course ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    sql = f"SELECT curriculum_id, curriculum_name FROM eduapp.msa_curriculums WHERE is_activate = 1 AND course_id = {course_id}"
+    sql = f"SELECT curriculum_id, curriculum_name FROM eduapp.msa_curriculums WHERE is_activate = 1 AND ID = {ID}"
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
@@ -386,13 +465,13 @@ def add_classroom_essentials(request):
         input_data = JSONParser().parse(request)
         classroom_essentials_name = input_data.get('classroom_essentials_name')
         classroom_essentials_description = input_data.get('classroom_essentials_description')
-        course_id = input_data.get('course_id')
+        ID = input_data.get('ID')
 
-        if not classroom_essentials_name or not course_id:
+        if not classroom_essentials_name or not ID:
             return Response({"error": "Classroom essentials name and Course ID are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        sql = f"""INSERT INTO eduapp.msa_classroom_essentials (classroom_essentials_name, classroom_essentials_description, course_id, is_activate)
-                  VALUES ('{classroom_essentials_name}', '{classroom_essentials_description}', {course_id}, 1)"""
+        sql = f"""INSERT INTO eduapp.msa_classroom_essentials (classroom_essentials_name, classroom_essentials_description, ID, is_activate)
+                  VALUES ('{classroom_essentials_name}', '{classroom_essentials_description}', {ID}, 1)"""
         cursor = connection.cursor()
         cursor.execute(sql)
         connection.commit()
@@ -403,7 +482,7 @@ def add_classroom_essentials(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])  
 def show_all_classroom_essentials(request):
-    sql = "SELECT ID, classroom_essentials_name, classroom_essentials_description, course_id, is_activate FROM eduapp.msa_classroom_essentials"
+    sql = "SELECT ID, classroom_essentials_name, classroom_essentials_description, ID, is_activate FROM eduapp.msa_classroom_essentials"
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
@@ -418,7 +497,7 @@ def show_all_classroom_essentials(request):
             "ID": row[0],
             "classroom_essentials_name": row[1],
             "classroom_essentials_description": row[2],
-            "course_id": row[3],
+            "ID": row[3],
             "is_activate": row[4]
         })
 
@@ -433,7 +512,7 @@ def show_classroom_essentials_by_id(request):
     if not essentials_id:
         return Response({"error": "Essentials ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    sql = f"SELECT ID, classroom_essentials_name, classroom_essentials_description, course_id, is_activate FROM eduapp.msa_classroom_essentials WHERE ID = {essentials_id}"
+    sql = f"SELECT ID, classroom_essentials_name, classroom_essentials_description, ID, is_activate FROM eduapp.msa_classroom_essentials WHERE ID = {essentials_id}"
     cursor = connection.cursor()
     cursor.execute(sql)
     row = cursor.fetchone()
@@ -446,7 +525,7 @@ def show_classroom_essentials_by_id(request):
         "ID": row[0],
         "classroom_essentials_name": row[1],
         "classroom_essentials_description": row[2],
-        "course_id": row[3],
+        "ID": row[3],
         "is_activate": row[4]
     }
 
@@ -459,7 +538,7 @@ def edit_classroom_essentials(request):
     essentials_id = input_data.get('essentials_id')
     classroom_essentials_name = input_data.get('classroom_essentials_name')
     classroom_essentials_description = input_data.get('classroom_essentials_description')
-    course_id = input_data.get('course_id')
+    ID = input_data.get('ID')
     is_activate = input_data.get('is_activate')
 
     if not essentials_id:
@@ -471,8 +550,8 @@ def edit_classroom_essentials(request):
         updatesql += f" classroom_essentials_name = '{classroom_essentials_name}',"
     if classroom_essentials_description:
         updatesql += f" classroom_essentials_description = '{classroom_essentials_description}',"
-    if course_id:
-        updatesql += f" course_id = {course_id},"
+    if ID:
+        updatesql += f" ID = {ID},"
     if is_activate is not None:
         updatesql += f" is_activate = {is_activate}"
 
@@ -488,7 +567,7 @@ def edit_classroom_essentials(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])  
 def show_active_classroom_essentials(request):
-    sql = "SELECT ID, classroom_essentials_name, classroom_essentials_description, course_id FROM eduapp.msa_classroom_essentials WHERE is_activate = 1"
+    sql = "SELECT ID, classroom_essentials_name, classroom_essentials_description, ID FROM eduapp.msa_classroom_essentials WHERE is_activate = 1"
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
@@ -503,7 +582,7 @@ def show_active_classroom_essentials(request):
             "ID": row[0],
             "classroom_essentials_name": row[1],
             "classroom_essentials_description": row[2],
-            "course_id": row[3]
+            "ID": row[3]
         })
 
     return Response(essentials_list, status=status.HTTP_200_OK)
@@ -512,12 +591,12 @@ def show_active_classroom_essentials(request):
 @api_view(['POST'])
 def show_active_classroom_essentials_by_course_id(request):
     input_data = JSONParser().parse(request)
-    course_id = input_data.get('course_id')
+    ID = input_data.get('ID')
     
-    if not course_id:
+    if not ID:
         return Response({"error": "Course ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    sql = f"SELECT ID, classroom_essentials_name, classroom_essentials_description FROM eduapp.msa_classroom_essentials WHERE is_activate = 1 AND course_id = {course_id}"
+    sql = f"SELECT ID, classroom_essentials_name, classroom_essentials_description FROM eduapp.msa_classroom_essentials WHERE is_activate = 1 AND ID = {ID}"
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()

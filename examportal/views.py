@@ -5,9 +5,6 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import JSONParser
 
-from student_user.models import Student
-from student_user.serializers import StudentSerializer
-
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
 
