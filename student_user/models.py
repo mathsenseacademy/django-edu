@@ -41,3 +41,19 @@ from django.utils import timezone
 
 #     def __str__(self):
 #         return f"{self.student_id} - {self.first_name} {self.last_name}"
+
+
+# models.py
+from django.db import models
+
+class StudentCredential(models.Model):
+    id = models.AutoField(primary_key=True)
+    student_id = models.IntegerField(null=True)
+    student_username = models.CharField(max_length=55, unique=True)
+    student_password = models.CharField(max_length=200)
+    last_login = models.DateTimeField(null=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'msa_student_credentials'
+        managed = False  # ✅ Do NOT allow Django to manage this table

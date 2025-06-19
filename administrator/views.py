@@ -5,8 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from .models import Administrator, CourseType, Course
 from .serializers import AdministratorSerializer, CourseTypeSerializer, CourseSerializer
-from student_user.models import Student
-from student_user.serializers import StudentSerializer
+
 
 from rest_framework_simplejwt.tokens import RefreshToken
 
