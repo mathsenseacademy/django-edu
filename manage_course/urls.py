@@ -14,8 +14,8 @@ urlpatterns = [
     path('courses_detail_show_public/', views.courses_detail_show_public, name='courses_detail_show_public'),
 
      # course_curriculum related urls
-    path('add_course_curriculum/', views.courses_detail_show_public, name='add_course_curriculum'),
-    path('show_all_curriculums/', views.courses_detail_show_public, name='show_all_curriculums'),
+    path('add_course_curriculum/', views.add_course_curriculum, name='add_course_curriculum'),
+    path('show_all_curriculums/', views.show_all_curriculums, name='show_all_curriculums'),
     path('show_curriculum_by_id/', views.show_curriculum_by_id, name='show_curriculum_by_id'),
     path('edit_curriculum/', views.edit_curriculum, name='edit_curriculum'),
     path('show_active_curriculums/', views.show_active_curriculums, name='show_active_curriculums'),

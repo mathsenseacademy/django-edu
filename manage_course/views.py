@@ -331,13 +331,13 @@ def add_course_curriculum(request):
     if request.method == 'POST':
         input_data = JSONParser().parse(request)
         curriculum_name = input_data.get('curriculum_name')
-        ID = input_data.get('ID')
+        course_id = input_data.get('course_id')
 
-        if not curriculum_name or not ID:
+        if not curriculum_name or not course_id:
             return Response({"error": "Curriculum name and Course ID are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        sql = f"""INSERT INTO eduapp.msa_curriculums (curriculum_name, ID, is_activate)
-                  VALUES ('{curriculum_name}', {ID}, 1)"""
+        sql = f"""INSERT INTO eduapp.msa_curriculums (curriculum_name, course_id, is_activate)
+                  VALUES ('{curriculum_name}', {course_id}, 1)"""
         cursor = connection.cursor()
         cursor.execute(sql)
         connection.commit()
@@ -345,10 +345,10 @@ def add_course_curriculum(request):
 
         return Response({"message": "Curriculum added successfully"}, status=status.HTTP_201_CREATED)
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])  
 def show_all_curriculums(request):
-    sql = "SELECT curriculum_id, curriculum_name, ID, is_activate FROM eduapp.msa_curriculums"
+    sql = "SELECT ID, curriculum_name, course_id, is_activate FROM eduapp.msa_curriculums"
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
@@ -375,9 +375,9 @@ def show_curriculum_by_id(request):
     curriculum_id = input_data.get('curriculum_id')
     
     if not curriculum_id:
-        return Response({"error": "Curriculum ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Course ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    sql = f"SELECT curriculum_id, curriculum_name, ID, is_activate FROM eduapp.msa_curriculums WHERE curriculum_id = {curriculum_id}"
+    sql = f"SELECT ID, curriculum_name, course_id, is_activate FROM eduapp.msa_curriculums WHERE ID = {curriculum_id}"
     cursor = connection.cursor()
     cursor.execute(sql)
     row = cursor.fetchone()
@@ -401,7 +401,7 @@ def edit_curriculum(request):
     input_data = JSONParser().parse(request)
     curriculum_id = input_data.get('curriculum_id')
     curriculum_name = input_data.get('curriculum_name')
-    ID = input_data.get('ID')
+    course_id = input_data.get('course_id')
     is_activate = input_data.get('is_activate')
 
     if not curriculum_id:
@@ -411,8 +411,8 @@ def edit_curriculum(request):
 
     if curriculum_name:
         updatesql += f" curriculum_name = '{curriculum_name}',"
-    if ID:
-        updatesql += f" ID = {ID},"
+    if course_id:
+        updatesql += f" course_id = {course_id},"
     if is_activate is not None:
         updatesql += f" is_activate = {is_activate}"
 
@@ -481,13 +481,13 @@ def add_classroom_essentials(request):
         input_data = JSONParser().parse(request)
         classroom_essentials_name = input_data.get('classroom_essentials_name')
         classroom_essentials_description = input_data.get('classroom_essentials_description')
-        ID = input_data.get('ID')
+        course_id= input_data.get('course_id')
 
-        if not classroom_essentials_name or not ID:
+        if not classroom_essentials_name or not course_id:
             return Response({"error": "Classroom essentials name and Course ID are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        sql = f"""INSERT INTO eduapp.msa_classroom_essentials (classroom_essentials_name, classroom_essentials_description, ID, is_activate)
-                  VALUES ('{classroom_essentials_name}', '{classroom_essentials_description}', {ID}, 1)"""
+        sql = f"""INSERT INTO eduapp.msa_classroom_essentials (classroom_essentials_name, classroom_essentials_description, course_id, is_activate)
+                  VALUES ('{classroom_essentials_name}', '{classroom_essentials_description}', {course_id}, 1)"""
         cursor = connection.cursor()
         cursor.execute(sql)
         connection.commit()
@@ -775,7 +775,7 @@ def add_category_level(request):
 
         return Response({"message": "Category level added successfully"}, status=status.HTTP_201_CREATED)
     
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def show_all_category_levels(request):
     sql = "SELECT ID, cetagory_name, is_activate FROM eduapp.msa_cetagory_level"

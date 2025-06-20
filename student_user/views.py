@@ -356,4 +356,80 @@ def student_register(request):
 #         print(f"Database error: {e}")
 #         return Response({"error": "Failed to confirm OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def student_list(request):
+    try:
+        cursor = connection.cursor()
+        sql = """
+            SELECT 
+                ID, student_id, first_name, middle_name, last_name, email, student_class, is_verified, is_activate 
+            FROM 
+                eduapp.msa_registerd_student
+            ORDER BY ID DESC
+        """
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+        cursor.close()
+
+        students = []
+        for row in rows:
+            students.append({
+                "ID": row[0],
+                "student_id": row[1],
+                "first_name": row[2],
+                "middle_name": row[3],
+                "last_name": row[4],
+                "email": row[5],
+                "student_class": row[6],
+                "is_verified": bool(row[7]),
+                "is_active": bool(row[8])
+            })
+
+        return Response(students, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error fetching student list: {e}")
+        return Response({"error": "Could not retrieve students."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def verified_student_list(request):
+    try:
+        cursor = connection.cursor()
+        sql = """
+            SELECT 
+                ID, student_id, first_name, middle_name, last_name, email, student_class, is_verified, is_activate 
+            FROM 
+                eduapp.msa_registerd_student
+                WHERE is_verified = 1
+            ORDER BY ID DESC
+        """
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+        cursor.close()
+
+        students = []
+        for row in rows:
+            students.append({
+                "ID": row[0],
+                "student_id": row[1],
+                "first_name": row[2],
+                "middle_name": row[3],
+                "last_name": row[4],
+                "email": row[5],
+                "student_class": row[6],
+                "is_verified": bool(row[7]),
+                "is_active": bool(row[8])
+            })
+
+        return Response(students, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error fetching student list: {e}")
+        return Response({"error": "Could not retrieve students."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
     
