@@ -189,7 +189,22 @@ def show_all_activate_courses(request):
 
 @api_view(['GET'])
 def all_courses_show_public(request):
-    sql = "SELECT ID, course_name, course_subtitle, course_image_path FROM eduapp.msa_course WHERE show_in_forntpage = 1"
+    # sql = "SELECT ID, course_name, course_subtitle, course_image_path FROM eduapp.msa_course WHERE show_in_forntpage = 1"
+    sql = """
+    SELECT 
+    c.ID, 
+    c.course_name, 
+    c.course_subtitle, 
+    c.course_image_path, 
+    cl.class_name
+FROM 
+    eduapp.msa_course c
+JOIN 
+    eduapp.msa_class_level cl 
+    ON c.class_level_id = cl.ID
+WHERE 
+    c.show_in_forntpage = 1;
+"""
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
@@ -204,7 +219,8 @@ def all_courses_show_public(request):
             "ID": row[0],
             "course_name": row[1],
             "course_subtitle": row[2],
-            "course_image_path": row[3]
+            "course_image_path": row[3],
+            "msa_class_level": row[4]
         })
 
     return Response(batch_list, status=status.HTTP_200_OK)
