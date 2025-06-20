@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import  student_register_request_otp, student_confirm_otp, student_login, student_register,student_list,verified_student_list
+from .views import  student_register_request_otp, student_confirm_otp, student_login, student_register,student_list,verified_student_list,student_detail_by_id
 
 urlpatterns = [
     # path('register/', student_register),
@@ -10,4 +10,5 @@ urlpatterns = [
     path('register/', student_register),
     path('student_list/', student_list),
     path('verified_student_list/', verified_student_list),
+    path('student_detail_by_id/', student_detail_by_id),
 ]

@@ -416,7 +416,7 @@ def edit_curriculum(request):
     if is_activate is not None:
         updatesql += f" is_activate = {is_activate}"
 
-    updatesql += f" WHERE curriculum_id = {curriculum_id}"
+    updatesql += f" WHERE ID = {curriculum_id}"
 
     cursor = connection.cursor()
     cursor.execute(updatesql)
@@ -425,10 +425,10 @@ def edit_curriculum(request):
 
     return Response({"message": "Curriculum updated successfully"}, status=status.HTTP_200_OK)  
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated]) 
 def show_active_curriculums(request):
-    sql = "SELECT curriculum_id, curriculum_name, ID FROM eduapp.msa_curriculums WHERE is_activate = 1"
+    sql = "SELECT ID, curriculum_name, course_id FROM eduapp.msa_curriculums WHERE is_activate = 1"
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
@@ -448,14 +448,15 @@ def show_active_curriculums(request):
     return Response(curriculum_list, status=status.HTTP_200_OK) 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated]) 
 def show_active_curriculums_by_course_id(request):
     input_data = JSONParser().parse(request)
-    ID = input_data.get('ID')
+    course_id = input_data.get('course_id')
     
-    if not ID:
+    if not course_id:
         return Response({"error": "Course ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    sql = f"SELECT curriculum_id, curriculum_name FROM eduapp.msa_curriculums WHERE is_activate = 1 AND ID = {ID}"
+    sql = f"SELECT ID, curriculum_name FROM eduapp.msa_curriculums WHERE is_activate = 1 AND course_id = {course_id}"
     cursor = connection.cursor()
     cursor.execute(sql)
     rows = cursor.fetchall()
@@ -495,7 +496,7 @@ def add_classroom_essentials(request):
 
         return Response({"message": "Classroom essentials added successfully"}, status=status.HTTP_201_CREATED)
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])  
 def show_all_classroom_essentials(request):
     sql = "SELECT ID, classroom_essentials_name, classroom_essentials_description, ID, is_activate FROM eduapp.msa_classroom_essentials"
@@ -734,7 +735,7 @@ def edit_class_level(request):
 
     return Response({"message": "Class level updated successfully"}, status=status.HTTP_200_OK)
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def show_active_class_levels(request):
     sql = "SELECT ID, class_name FROM eduapp.msa_class_level WHERE is_activate = 1"
@@ -850,7 +851,7 @@ def edit_category_level(request):
 
     return Response({"message": "Category level updated successfully"}, status=status.HTTP_200_OK)
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def show_active_category_levels(request):
     sql = "SELECT ID, cetagory_name FROM eduapp.msa_cetagory_level WHERE is_activate = 1"
