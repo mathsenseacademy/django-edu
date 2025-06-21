@@ -581,7 +581,7 @@ def edit_classroom_essentials(request):
 
     return Response({"message": "Classroom essentials updated successfully"}, status=status.HTTP_200_OK)
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])  
 def show_active_classroom_essentials(request):
     sql = "SELECT ID, classroom_essentials_name, classroom_essentials_description, ID FROM eduapp.msa_classroom_essentials WHERE is_activate = 1"

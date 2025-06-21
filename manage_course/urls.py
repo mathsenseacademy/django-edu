@@ -27,7 +27,7 @@ urlpatterns = [
     path('show_classroom_essentials_by_id/', views.show_classroom_essentials_by_id, name='show_classroom_essentials_by_id'),
     path('edit_classroom_essentials/', views.edit_classroom_essentials, name='edit_classroom_essentials'),
     path('show_active_classroom_essentials/', views.show_active_classroom_essentials, name='show_active_classroom_essentials'),
-    path('show_active_classroom_essentials_by_course_id/', views.show_active_classroom_essentials_by_course_id, name='show_active_classroom_essentials_by_course_id'),
+    path('show_active_classroom_essentials_by_course_id/', views.show_active_classroom_essentials_by_course_id, name='show_active_classroom_essentials_by_course_id'),#not needed
 
     # class lavel related urls
     path('add_class_level/', views.add_class_level, name='add_class_level'),
