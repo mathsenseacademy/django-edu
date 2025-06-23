@@ -9,17 +9,17 @@ urlpatterns = [
     path('edit_course/', views.edit_course, name='edit_course'),
     path('showcourseid/', views.show_course_by_id, name='show_course_by_id'),
     path('showallcourse/', views.show_all_courses, name='show_all_batch'),
-    path('showallactivatecourse/', views.show_all_activate_courses, name='show_all_activate_batch'),
+    path('showallactivatecourse/', views.show_all_activate_courses, name='show_all_activate_batch'), # not need
     path('all_courses_show_public/', views.all_courses_show_public, name='all_courses_show_public'),
     path('courses_detail_show_public/', views.courses_detail_show_public, name='courses_detail_show_public'),
 
      # course_curriculum related urls
-    path('add_course_curriculum/', views.courses_detail_show_public, name='add_course_curriculum'),
-    path('show_all_curriculums/', views.courses_detail_show_public, name='show_all_curriculums'),
+    path('add_course_curriculum/', views.add_course_curriculum, name='add_course_curriculum'),
+    path('show_all_curriculums/', views.show_all_curriculums, name='show_all_curriculums'),
     path('show_curriculum_by_id/', views.show_curriculum_by_id, name='show_curriculum_by_id'),
     path('edit_curriculum/', views.edit_curriculum, name='edit_curriculum'),
     path('show_active_curriculums/', views.show_active_curriculums, name='show_active_curriculums'),
-    path('show_active_curriculums_by_course_id/', views.show_active_curriculums_by_course_id, name='show_active_curriculums_by_course_id'),
+    path('show_active_curriculums_by_course_id/', views.show_active_curriculums_by_course_id, name='show_active_curriculums_by_course_id'),  #not needed
     
     # classroom_essentials related urls
     path('add_classroom_essentials/', views.add_classroom_essentials, name='add_classroom_essentials'),
@@ -27,7 +27,7 @@ urlpatterns = [
     path('show_classroom_essentials_by_id/', views.show_classroom_essentials_by_id, name='show_classroom_essentials_by_id'),
     path('edit_classroom_essentials/', views.edit_classroom_essentials, name='edit_classroom_essentials'),
     path('show_active_classroom_essentials/', views.show_active_classroom_essentials, name='show_active_classroom_essentials'),
-    path('show_active_classroom_essentials_by_course_id/', views.show_active_classroom_essentials_by_course_id, name='show_active_classroom_essentials_by_course_id'),
+    path('show_active_classroom_essentials_by_course_id/', views.show_active_classroom_essentials_by_course_id, name='show_active_classroom_essentials_by_course_id'),#not needed
 
     # class lavel related urls
     path('add_class_level/', views.add_class_level, name='add_class_level'),
