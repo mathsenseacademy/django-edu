@@ -109,13 +109,13 @@ def student_register_request_otp(request):
         first_name, middle_name, last_name, date_of_birth,
         contact_number_1, contact_number_2, student_class,
         school_or_college_name, board_or_university_name,
-        address, city, district, state, pin, notes, email
+        address, city, district, state, pin, notes, email,student_type, student_photo
     ) VALUES (
         '{data['first_name']}', '{data['middle_name']}', '{data['last_name']}',
         '{data['date_of_birth']}', '{data['contact_number_1']}', '{data['contact_number_2']}',
         '{data['student_class']}', '{data['school_or_college_name']}', '{data['board_or_university_name']}',
         '{data['address']}', '{data['city']}', '{data['district']}',
-        '{data['state']}', '{data['pin']}', '{data.get('notes', '')}', '{email}'
+        '{data['state']}', '{data['pin']}', '{data.get('notes', '')}', '{email}', 'discontinue', '{data.get('student_photo')}'
     );
 ELSE
     -- Optional: you can raise a signal or do something else
