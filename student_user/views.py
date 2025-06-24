@@ -430,7 +430,7 @@ def student_list(request):
         cursor = connection.cursor()
         sql = """
             SELECT 
-                ID, student_id, first_name, middle_name, last_name, email, student_class, student_photo_path, is_verified, is_activate 
+                ID, student_id, first_name, middle_name, last_name, contact_number_1, email, student_class, student_photo_path, is_verified, is_activate 
             FROM 
                 eduapp.msa_registerd_student
             ORDER BY ID DESC
@@ -448,10 +448,11 @@ def student_list(request):
                 "first_name": row[2],
                 "middle_name": row[3],
                 "last_name": row[4],
-                "email": row[5],
-                "student_class": row[6],
-                "student_photo_path": row[7],
-                "is_verified": bool(row[8]),
+                "contact_number_1": row[5],
+                "email": row[6],
+                "student_class": row[7],
+                "student_photo_path": row[8],
+                "is_verified": bool(row[9]),
                 "is_active": bool(row[9])
             })
 
