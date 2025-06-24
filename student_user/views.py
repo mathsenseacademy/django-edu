@@ -34,6 +34,7 @@ OTP_EXPIRY_MINUTES = 10
 def generate_otp():
     return str(random.randint(100000, 999999))
 
+
 def send_otp_email(recipient_email, otp):
     # otp = generate_otp()
 
@@ -71,6 +72,72 @@ def send_otp_email(recipient_email, otp):
 
 
 
+@api_view(['POST'])
+def student_confirm_otp(request):
+    print("Confirm OTP called")
+    email = request.data.get("email")
+    otp = request.data.get("otp")
+    print(  email)
+    # Step 1: Check OTP in cache
+    cached = cache.get(f"student_otp_{email}")
+    if not cached:
+        return Response({"error": "OTP expired or not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if cached['otp'] != otp:
+        return Response({"error": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+    data = cached['data']
+
+    try:
+        # Step 2: Mark student as verified
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT ID FROM eduapp.msa_registerd_student WHERE email = %s", [email])
+            row = cursor.fetchone()
+            if not row:
+                return Response({"error": "Student not found in registration table."}, status=status.HTTP_404_NOT_FOUND)
+            student_db_id = row[0]
+
+            # Generate student_id string
+            formatted_id = f"MSA_{datetime.now().strftime('%m%Y')}{student_db_id}"
+
+            # Update verified and student_id
+            cursor.execute("""
+                UPDATE eduapp.msa_registerd_student 
+                SET is_verified = 1, student_id = %s
+                WHERE ID = %s
+            """, [formatted_id, student_db_id])
+            connection.commit()
+
+        ## Step 3: Register student in msa_student_credentials using serializer
+        credential_data = {
+            "student_id": student_db_id,
+            "student_username": email,
+            "student_password": f"{data['first_name']}{datetime.strptime(data['date_of_birth'], '%Y-%m-%d').year}",
+            "is_active": True,
+            "last_login": timezone.now()
+        }
+
+        serializer = StudentCredentialSerializer(data=credential_data)
+        if serializer.is_valid():
+            student = serializer.save()
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        cache.delete(f"student_otp_{email}")
+
+        ## Step 4: Generate JWT and respond
+        tokens = generate_jwt_for_student(student)
+
+        return Response({
+            "message": "Student registered and verified successfully.",
+            "student_id": student_db_id,
+            "username": email,
+            # **tokens
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response({"error": "Failed to complete OTP confirmation and registration."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # def student_register_request_otp(request):
 #     #  create a basic pythom fumction for add data to database and send otp to email before add data verify email existence I donott want to use serializer and model for this function
@@ -190,9 +257,9 @@ def student_register_request_otp(request):
         "notes": request.data.get("notes", ""),
         "email": email,
         "student_type": "discontinue",
-        "student_photo_path": request.data.get("student_photo", ""),
+        "student_photo_path": request.data.get("student_photo_path", ""),
     }
-
+    
     sql = """
     INSERT INTO eduapp.msa_registerd_student (
         first_name, middle_name, last_name, date_of_birth,
@@ -226,6 +293,8 @@ def student_register_request_otp(request):
     );
     """
 
+    print(sql)
+
     params = list(fields.values()) + [email]
 
     try:
@@ -258,71 +327,8 @@ def generate_jwt_for_student(user):
         'access': str(refresh.access_token),
     }
 
-@api_view(['POST'])
-def student_confirm_otp(request):
-    email = request.data.get("email")
-    otp = request.data.get("otp")
 
-    # Step 1: Check OTP in cache
-    cached = cache.get(f"student_otp_{email}")
-    if not cached:
-        return Response({"error": "OTP expired or not found."}, status=status.HTTP_400_BAD_REQUEST)
 
-    if cached['otp'] != otp:
-        return Response({"error": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
-
-    data = cached['data']
-
-    try:
-        # Step 2: Mark student as verified
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT ID FROM eduapp.msa_registerd_student WHERE email = %s", [email])
-            row = cursor.fetchone()
-            if not row:
-                return Response({"error": "Student not found in registration table."}, status=status.HTTP_404_NOT_FOUND)
-            student_db_id = row[0]
-
-            # Generate student_id string
-            formatted_id = f"MSA_{datetime.now().strftime('%m%Y')}{student_db_id}"
-
-            # Update verified and student_id
-            cursor.execute("""
-                UPDATE eduapp.msa_registerd_student 
-                SET is_verified = 1, student_id = %s
-                WHERE ID = %s
-            """, [formatted_id, student_db_id])
-            connection.commit()
-
-        # Step 3: Register student in msa_student_credentials using serializer
-        credential_data = {
-            "student_id": student_db_id,
-            "student_username": email,
-            "student_password": f"{data['first_name']}{datetime.strptime(data['date_of_birth'], '%Y-%m-%d').year}",
-            "is_active": True,
-            "last_login": timezone.now()
-        }
-
-        serializer = StudentCredentialSerializer(data=credential_data)
-        if serializer.is_valid():
-            student = serializer.save()
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        cache.delete(f"student_otp_{email}")
-
-        # Step 4: Generate JWT and respond
-        tokens = generate_jwt_for_student(student)
-
-        return Response({
-            "message": "Student registered and verified successfully.",
-            "student_id": student_db_id,
-            "username": email,
-            **tokens
-        }, status=status.HTTP_201_CREATED)
-
-    except Exception as e:
-        print(f"Error: {e}")
-        return Response({"error": "Failed to complete OTP confirmation and registration."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # def generate_jwt_for_student(user):
@@ -424,11 +430,12 @@ def student_list(request):
         cursor = connection.cursor()
         sql = """
             SELECT 
-                ID, student_id, first_name, middle_name, last_name, email, student_class, is_verified, is_activate 
+                ID, student_id, first_name, middle_name, last_name, email, student_class, student_photo_path, is_verified, is_activate 
             FROM 
                 eduapp.msa_registerd_student
             ORDER BY ID DESC
         """
+        print(sql)
         cursor.execute(sql)
         rows = cursor.fetchall()
         cursor.close()
@@ -443,8 +450,9 @@ def student_list(request):
                 "last_name": row[4],
                 "email": row[5],
                 "student_class": row[6],
-                "is_verified": bool(row[7]),
-                "is_active": bool(row[8])
+                "student_photo_path": row[7],
+                "is_verified": bool(row[8]),
+                "is_active": bool(row[9])
             })
 
         return Response(students, status=status.HTTP_200_OK)
@@ -461,12 +469,13 @@ def verified_student_list(request):
         cursor = connection.cursor()
         sql = """
             SELECT 
-                ID, student_id, first_name, middle_name, last_name, email, student_class, is_verified, is_activate 
+                ID, student_id, first_name, middle_name, last_name, email, student_class,student_photo_path, is_verified, is_activate 
             FROM 
                 eduapp.msa_registerd_student
                 WHERE is_verified = 1
             ORDER BY ID DESC
         """
+        print(sql)
         cursor.execute(sql)
         rows = cursor.fetchall()
         cursor.close()
@@ -481,8 +490,9 @@ def verified_student_list(request):
                 "last_name": row[4],
                 "email": row[5],
                 "student_class": row[6],
-                "is_verified": bool(row[7]),
-                "is_active": bool(row[8])
+                "student_photo_path": row[7],
+                "is_verified": bool(row[8]),
+                "is_active": bool(row[9])
             })
 
         return Response(students, status=status.HTTP_200_OK)
@@ -506,7 +516,7 @@ def student_detail_by_id(request):
                 contact_number_1, contact_number_2, student_class,
                 school_or_college_name, board_or_university_name,
                 address, city, district, state, pin,
-                is_verified, is_active, date_of_birth
+                is_verified, is_active, date_of_birth, student_photo_path
             FROM 
                 eduapp.msa_registerd_student
             WHERE ID = %s
@@ -537,7 +547,8 @@ def student_detail_by_id(request):
             "pin": row[15],
             "is_verified": bool(row[16]),
             "is_active": bool(row[17]),
-            "date_of_birth": row[18].strftime("%Y-%m-%d") if row[18] else None
+            "date_of_birth": row[18].strftime("%Y-%m-%d") if row[18] else None,
+            "student_photo_path": row[19] if row[19] else None
         }
 
         return Response(student, status=status.HTTP_200_OK)
