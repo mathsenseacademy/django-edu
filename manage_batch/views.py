@@ -1,0 +1,260 @@
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+# from .models import Student
+# from .serializers import StudentSerializer
+from django.core.mail import send_mail
+import random
+
+from django.db import connection
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import JSONParser
+
+
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.conf import settings
+
+
+from django.core.cache import cache
+
+from django.core.mail import send_mail
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import smtplib
+from datetime import datetime
+from django.utils import timezone
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_batch(request):
+    input_data = JSONParser().parse(request)
+    batch_name = input_data.get('batch_name')
+    description = input_data.get('description', '')
+    course_id = input_data.get('course_id')
+    schedules = input_data.get('schedules', [])
+
+    if not batch_name or not course_id or not schedules:
+        return Response({"error": "Batch name, course_id and schedules are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        cursor = connection.cursor()
+
+        # Insert into msa_batch
+        cursor.execute(
+            """
+            INSERT INTO eduapp.msa_batch (batch_name, description, course_id, is_activate)
+            VALUES (%s, %s, %s, 1)
+            """,
+            [batch_name, description, course_id]
+        )
+        batch_id = cursor.lastrowid
+
+        # Insert batch schedules
+        for sched in schedules:
+            weekday = sched.get('weekday')
+            start_time = sched.get('start_time')
+            end_time = sched.get('end_time')
+            if not weekday or not start_time:
+                continue
+            cursor.execute(
+                """
+                INSERT INTO eduapp.msa_batch_schedule (batch_id, weekday, start_time, end_time)
+                VALUES (%s, %s, %s, %s)
+                """,
+                [batch_id, weekday, start_time, end_time]
+            )
+
+        connection.commit()
+        cursor.close()
+        return Response({"message": "Batch created successfully under course"}, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response({"error": "Failed to create batch"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def all_batches_with_schedule(request):
+    try:
+        cursor = connection.cursor()
+
+        # Step 1: Fetch all batches with course info
+        cursor.execute("""
+            SELECT 
+                b.id AS batch_id,
+                b.batch_name,
+                b.description,
+                c.course_name
+            FROM 
+                eduapp.msa_batch b
+            LEFT JOIN 
+                eduapp.msa_course c ON b.course_id = c.id
+            ORDER BY 
+                b.id
+        """)
+        batch_rows = cursor.fetchall()
+
+        # Convert to dict list
+        batch_list = []
+        for row in batch_rows:
+            batch_list.append({
+                "batch_id": row[0],
+                "batch_name": row[1],
+                "description": row[2],
+                "course_name": row[3],
+                "schedules": []
+            })
+
+        # Step 2: Fetch all schedules
+        batch_ids = [b["batch_id"] for b in batch_list]
+        if batch_ids:
+            format_strings = ','.join(['%s'] * len(batch_ids))
+            cursor.execute(f"""
+                SELECT 
+                    batch_id, weekday, start_time, end_time
+                FROM 
+                    eduapp.msa_batch_schedule
+                WHERE 
+                    batch_id IN ({format_strings})
+                ORDER BY 
+                    batch_id, FIELD(weekday, 'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'), start_time
+            """, batch_ids)
+            schedule_rows = cursor.fetchall()
+
+            # Map schedules to batches
+            batch_map = {b["batch_id"]: b for b in batch_list}
+            for row in schedule_rows:
+                batch_id, weekday, start_time, end_time = row
+                schedule = {
+                    "weekday": weekday,
+                    "start_time": str(start_time),
+                    "end_time": str(end_time) if end_time else None
+                }
+                batch_map[batch_id]["schedules"].append(schedule)
+
+        return Response(batch_list, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response({"error": "Failed to fetch batch data"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def batch_detail_by_id(request):
+    batch_id = request.data.get('batch_id')
+    if not batch_id:
+        return Response({"error": "Batch ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        cursor = connection.cursor()
+
+        # Fetch the batch details
+        cursor.execute("""
+            SELECT 
+                b.id AS batch_id,
+                b.batch_name,
+                b.description,
+                c.course_name
+            FROM 
+                eduapp.msa_batch b
+            LEFT JOIN 
+                eduapp.msa_course c ON b.course_id = c.id
+            WHERE 
+                b.id = %s
+        """, [batch_id])
+        batch_row = cursor.fetchone()
+
+        if not batch_row:
+            return Response({"error": "Batch not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        result = {
+            "batch_id": batch_row[0],
+            "batch_name": batch_row[1],
+            "description": batch_row[2],
+            "course_name": batch_row[3],
+            "schedules": []
+        }
+
+        # Fetch schedules for the batch
+        cursor.execute("""
+            SELECT 
+                weekday, start_time, end_time
+            FROM 
+                eduapp.msa_batch_schedule
+            WHERE 
+                batch_id = %s
+            ORDER BY 
+                FIELD(weekday, 'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'), start_time
+        """, [batch_id])
+        schedule_rows = cursor.fetchall()
+
+        for row in schedule_rows:
+            result["schedules"].append({
+                "weekday": row[0],
+                "start_time": str(row[1]),
+                "end_time": str(row[2]) if row[2] else None
+            })
+
+        return Response(result, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response({"error": "Failed to retrieve batch details."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_batch(request):
+    input_data = request.data
+    batch_id = input_data.get('batch_id')
+    batch_name = input_data.get('batch_name')
+    description = input_data.get('description', '')
+    course_id = input_data.get('course_id')
+    schedules = input_data.get('schedules', [])
+
+    if not batch_id or not batch_name or not course_id:
+        return Response({"error": "batch_id, batch_name and course_id are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        cursor = connection.cursor()
+
+        # 1. Update batch table
+        cursor.execute("""
+            UPDATE eduapp.msa_batch
+            SET batch_name = %s, description = %s, course_id = %s
+            WHERE id = %s
+        """, [batch_name, description, course_id, batch_id])
+
+        # 2. Delete existing schedule entries for this batch
+        cursor.execute("""
+            DELETE FROM eduapp.msa_batch_schedule
+            WHERE batch_id = %s
+        """, [batch_id])
+
+        # 3. Re-insert schedule
+        for sched in schedules:
+            weekday = sched.get('weekday')
+            start_time = sched.get('start_time')
+            end_time = sched.get('end_time')
+
+            if not weekday or not start_time:
+                continue
+
+            cursor.execute("""
+                INSERT INTO eduapp.msa_batch_schedule (batch_id, weekday, start_time, end_time)
+                VALUES (%s, %s, %s, %s)
+            """, [batch_id, weekday, start_time, end_time])
+
+        connection.commit()
+        cursor.close()
+
+        return Response({"message": "Batch updated successfully."}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response({"error": "Failed to update batch."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
