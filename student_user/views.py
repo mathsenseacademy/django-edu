@@ -727,7 +727,92 @@ def student_detail_by_id(request):
         print(f"Error fetching student detail: {e}")
         return Response({"error": "Could not retrieve student details."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@api_view(['POST'])  # You can change to PUT if preferred
+@permission_classes([IsAuthenticated])
+def update_student_detail(request):
+    student_id = request.data.get("student_id")
+    if not student_id:
+        return Response({"error": "Student ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
+    try:
+        fields = {
+            "first_name": request.data.get("first_name", ""),
+            "middle_name": request.data.get("middle_name", ""),
+            "last_name": request.data.get("last_name", ""),
+            "email": request.data.get("email", ""),
+            "contact_number_1": request.data.get("contact_number_1", ""),
+            "contact_number_2": request.data.get("contact_number_2", ""),
+            "student_class": request.data.get("student_class", ""),
+            "school_or_college_name": request.data.get("school_or_college_name", ""),
+            "board_or_university_name": request.data.get("board_or_university_name", ""),
+            "address": request.data.get("address", ""),
+            "city": request.data.get("city", ""),
+            "district": request.data.get("district", ""),
+            "state": request.data.get("state", ""),
+            "pin": request.data.get("pin", ""),
+            "notes": request.data.get("notes", ""),
+            "is_verified": int(request.data.get("is_verified", False)),
+            "is_activate": int(request.data.get("is_activate", False)),
+            "date_of_birth": request.data.get("date_of_birth", None),
+            "student_photo_path": request.data.get("student_photo_path", None)
+        }
+
+        sql = """
+            UPDATE eduapp.msa_registerd_student
+            SET
+                first_name = %s,
+                middle_name = %s,
+                last_name = %s,
+                email = %s,
+                contact_number_1 = %s,
+                contact_number_2 = %s,
+                student_class = %s,
+                school_or_college_name = %s,
+                board_or_university_name = %s,
+                address = %s,
+                city = %s,
+                district = %s,
+                state = %s,
+                pin = %s,
+                notes = %s,
+                is_verified = %s,
+                is_activate = %s,
+                date_of_birth = %s,
+                student_photo_path = %s
+            WHERE ID = %s
+        """
+
+        cursor = connection.cursor()
+        cursor.execute(sql, [
+            fields["first_name"],
+            fields["middle_name"],
+            fields["last_name"],
+            fields["email"],
+            fields["contact_number_1"],
+            fields["contact_number_2"],
+            fields["student_class"],
+            fields["school_or_college_name"],
+            fields["board_or_university_name"],
+            fields["address"],
+            fields["city"],
+            fields["district"],
+            fields["state"],
+            fields["pin"],
+            fields["notes"],
+            fields["is_verified"],
+            fields["is_activate"],
+            fields["date_of_birth"],
+            fields["student_photo_path"],
+            student_id
+        ])
+        connection.commit()
+        cursor.close()
+
+        return Response({"message": "Student details updated successfully"}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error updating student detail: {e}")
+        return Response({"error": "Failed to update student details."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
     
