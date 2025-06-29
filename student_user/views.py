@@ -815,4 +815,110 @@ def update_student_detail(request):
         return Response({"error": "Failed to update student details."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-    
+@api_view(['POST'])
+def request_student_login_otp(request):
+    email = request.data.get("email")
+    if not email:
+        return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        cursor = connection.cursor()
+        cursor.execute("SELECT ID FROM eduapp.msa_registerd_student WHERE email = %s", [email])
+        student = cursor.fetchone()
+        if not student:
+            return Response({"error": "Student not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        otp = generate_otp()
+        timestamp = timezone.now()
+
+        # Save OTP + student data in cache
+        cache.set(f"student_otp_{email}", {
+            "otp": otp,
+        }, timeout=OTP_EXPIRY_MINUTES * 60)
+
+        send_otp_email(email, otp)
+
+        # Save OTP in a temporary table (you must create this table)
+        cursor.execute("""
+            INSERT INTO eduapp.student_otp_log (email, otp_code, created_at)
+            VALUES (%s, %s, %s)
+            ON DUPLICATE KEY UPDATE otp_code = VALUES(otp_code), created_at = VALUES(created_at)
+        """, [email, otp, timestamp])
+        connection.commit()
+        cursor.close()
+
+        # TODO: Send OTP to email (integrate your email logic)
+        print(f"OTP for {email}: {otp}")
+
+
+        return Response({"message": "OTP sent to email."}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error requesting OTP: {e}")
+        return Response({"error": "Failed to send OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
+
+from rest_framework_simplejwt.tokens import RefreshToken
+
+@api_view(['POST'])
+def verify_student_login_otp(request):
+    email = request.data.get("email")
+    otp = request.data.get("otp")
+
+    if not email or not otp:
+        return Response({"error": "Email and OTP are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        cursor = connection.cursor()
+
+        # Verify OTP from the temp log table
+        cursor.execute("""
+            SELECT created_at FROM eduapp.student_otp_log
+            WHERE email = %s AND otp_code = %s
+        """, [email, otp])
+        row = cursor.fetchone()
+
+        if not row:
+            return Response({"error": "Invalid or expired OTP."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # You may optionally check timestamp validity here
+
+        # Get student ID
+        cursor.execute("""SELECT ID, 
+                       first_name, middle_name, last_name, date_of_birth,
+            contact_number_1, contact_number_2, student_class,
+            school_or_college_name, board_or_university_name,
+            address, city, district, state, pin, notes,
+            email, student_type, student_photo_path
+                       FROM eduapp.msa_registerd_student WHERE email = %s""", [email])
+        student = cursor.fetchone()
+        if not student:
+            return Response({"error": "Student not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        student_id = student[0]
+
+        # Fake user object
+        class StudentUser:
+            def __init__(self, id):
+                self.id = id
+            @property
+            def is_authenticated(self):
+                return True
+
+        student_user = StudentUser(student_id)
+
+        refresh = RefreshToken.for_user(student_user)
+
+        # Optionally delete used OTP
+        cursor.execute("DELETE FROM eduapp.student_otp_log WHERE email = %s", [email])
+        connection.commit()
+        cursor.close()
+
+        return Response({
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "student_id": student_id
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"OTP verification error: {e}")
+        return Response({"error": "OTP verification failed."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
