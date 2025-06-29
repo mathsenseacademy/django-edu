@@ -511,17 +511,18 @@ def student_detail_by_id(request):
 
     try:
         cursor = connection.cursor()
-        sql = """
+        sql = f"""
             SELECT 
                 ID, student_id, first_name, middle_name, last_name, email,
                 contact_number_1, contact_number_2, student_class,
                 school_or_college_name, board_or_university_name,
-                address, city, district, state, pin,
-                is_verified, is_active, date_of_birth, student_photo_path
+                address, city, district, state, pin, notes,
+                is_verified, is_activate, date_of_birth, student_photo_path
             FROM 
                 eduapp.msa_registerd_student
-            WHERE ID = %s
+            WHERE ID = {student_id}
         """
+        print(sql)
         cursor.execute(sql, [student_id])
         row = cursor.fetchone()
         cursor.close()
