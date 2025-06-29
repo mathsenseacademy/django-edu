@@ -259,7 +259,7 @@ def student_register_request_otp(request):
         "student_type": "discontinue",
         "student_photo_path": request.data.get("student_photo_path", ""),
     }
-    
+    print(request.data.get("contact_number_1", ""))
     sql = """
     INSERT INTO eduapp.msa_registerd_student (
         first_name, middle_name, last_name, date_of_birth,
@@ -502,6 +502,63 @@ def verified_student_list(request):
         print(f"Error fetching student list: {e}")
         return Response({"error": "Could not retrieve students."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def student_detail_by_id(request):
+#     student_id = request.data.get("student_id")
+#     if not student_id:
+#         return Response({"error": "Student ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+#     try:
+#         cursor = connection.cursor()
+#         sql = f"""
+#             SELECT
+#                 ID, student_id, first_name, middle_name, last_name, email,
+#                 contact_number_1, contact_number_2, student_class,
+#                 school_or_college_name, board_or_university_name,
+#                 address, city, district, state, pin, notes,
+#                 is_verified, is_activate, date_of_birth, student_photo_path
+#             FROM
+#                 eduapp.msa_registerd_student
+#             WHERE ID = {student_id}
+#         """
+#         print(sql)
+#         cursor.execute(sql, [student_id])
+#         row = cursor.fetchone()
+#         cursor.close()
+
+#         if not row:
+#             return Response({"message": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
+
+#         student = {
+#             "ID": row[0],
+#             "student_id": row[1],
+#             "first_name": row[2],
+#             "middle_name": row[3],
+#             "last_name": row[4],
+#             "email": row[5],
+#             "contact_number_1": row[6],
+#             "contact_number_2": row[7],
+#             "student_class": row[8],
+#             "school_or_college_name": row[9],
+#             "board_or_university_name": row[10],
+#             "address": row[11],
+#             "city": row[12],
+#             "district": row[13],
+#             "state": row[14],
+#             "pin": row[15],
+#             "is_verified": bool(row[16]),
+#             "is_active": bool(row[17]),
+#             "date_of_birth": row[18].strftime("%Y-%m-%d") if row[18] else None,
+#             "student_photo_path": row[19] if row[19] else None
+#         }
+
+#         return Response(student, status=status.HTTP_200_OK)
+
+#     except Exception as e:
+#         print(f"Error fetching student detail: {e}")
+#         return Response({"error": "Could not retrieve student details."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def student_detail_by_id(request):
@@ -511,18 +568,17 @@ def student_detail_by_id(request):
 
     try:
         cursor = connection.cursor()
-        sql = f"""
-            SELECT 
+        sql = """
+            SELECT
                 ID, student_id, first_name, middle_name, last_name, email,
                 contact_number_1, contact_number_2, student_class,
                 school_or_college_name, board_or_university_name,
                 address, city, district, state, pin, notes,
                 is_verified, is_activate, date_of_birth, student_photo_path
-            FROM 
+            FROM
                 eduapp.msa_registerd_student
-            WHERE ID = {student_id}
+            WHERE ID = %s
         """
-        print(sql)
         cursor.execute(sql, [student_id])
         row = cursor.fetchone()
         cursor.close()
@@ -547,10 +603,11 @@ def student_detail_by_id(request):
             "district": row[13],
             "state": row[14],
             "pin": row[15],
-            "is_verified": bool(row[16]),
-            "is_active": bool(row[17]),
-            "date_of_birth": row[18].strftime("%Y-%m-%d") if row[18] else None,
-            "student_photo_path": row[19] if row[19] else None
+            "notes": row[16],
+            "is_verified": bool(row[17]),
+            "is_active": bool(row[18]),
+            "date_of_birth": row[19].strftime("%Y-%m-%d") if row[19] else None,
+            "student_photo_path": row[20] if row[20] else None
         }
 
         return Response(student, status=status.HTTP_200_OK)
@@ -558,6 +615,7 @@ def student_detail_by_id(request):
     except Exception as e:
         print(f"Error fetching student detail: {e}")
         return Response({"error": "Could not retrieve student details."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 
