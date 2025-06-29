@@ -229,16 +229,110 @@ def student_confirm_otp(request):
 
 
 
+# @api_view(['POST'])
+# def student_register_request_otp(request):
+#     email = request.data.get("email")
+#     if not email:
+#         return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+#     # Generate OTP
+#     otp = generate_otp()
+
+#     # Get all fields
+#     fields = {
+#         "first_name": request.data.get("first_name", ""),
+#         "middle_name": request.data.get("middle_name", ""),
+#         "last_name": request.data.get("last_name", ""),
+#         "date_of_birth": request.data.get("date_of_birth", ""),
+#         "contact_number_1": request.data.get("contact_number_1", ""),
+#         "contact_number_2": request.data.get("contact_number_2", ""),
+#         "student_class": request.data.get("student_class", ""),
+#         "school_or_college_name": request.data.get("school_or_college_name", ""),
+#         "board_or_university_name": request.data.get("board_or_university_name", ""),
+#         "address": request.data.get("address", ""),
+#         "city": request.data.get("city", ""),
+#         "district": request.data.get("district", ""),
+#         "state": request.data.get("state", ""),
+#         "pin": request.data.get("pin", ""),
+#         "notes": request.data.get("notes", ""),
+#         "email": email,
+#         "student_type": "discontinue",
+#         "student_photo_path": request.data.get("student_photo_path", ""),
+#     }
+#     print(request.data.get("contact_number_1", ""))
+#     sql = """
+#     INSERT INTO eduapp.msa_registerd_student (
+#         first_name, middle_name, last_name, date_of_birth,
+#         contact_number_1, contact_number_2, student_class,
+#         school_or_college_name, board_or_university_name,
+#         address, city, district, state, pin, notes,
+#         email, student_type, student_photo_path
+#     )
+#     SELECT * FROM (
+#         SELECT %s AS first_name,
+#                %s AS middle_name,
+#                %s AS last_name,
+#                %s AS date_of_birth,
+#                %s AS contact_number_1,
+#                %s AS contact_number_2,
+#                %s AS student_class,
+#                %s AS school_or_college_name,
+#                %s AS board_or_university_name,
+#                %s AS address,
+#                %s AS city,
+#                %s AS district,
+#                %s AS state,
+#                %s AS pin,
+#                %s AS notes,
+#                %s AS email,
+#                %s AS student_type,
+#                %s AS student_photo_path
+#     ) AS tmp
+#     WHERE NOT EXISTS (
+#         SELECT 1 FROM eduapp.msa_registerd_student WHERE email = %s
+#     );
+#     """
+
+#     print(sql)
+
+#     params = list(fields.values()) + [email]
+
+#     try:
+#         cursor = connection.cursor()
+#         cursor.execute(sql, params)
+#         connection.commit()
+#         cursor.close()
+
+#         # Cache OTP
+#         otp_data = {
+#             "otp": otp,
+#             "data": fields
+#         }
+#         cache.set(f"student_otp_{email}", otp_data, timeout=OTP_EXPIRY_MINUTES * 60)
+
+#         # Send OTP
+#         send_otp_email(email, otp)
+
+#         return Response({"message": "OTP sent to email."}, status=status.HTTP_200_OK)
+
+#     except Exception as e:
+#         print(f"Database error: {e}")
+#         return Response({"error": "Failed to register student."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 @api_view(['POST'])
 def student_register_request_otp(request):
     email = request.data.get("email")
     if not email:
         return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+    # Check if email already exists in the database
+    cursor = connection.cursor()
+    cursor.execute("SELECT 1 FROM eduapp.msa_registerd_student WHERE email = %s", [email])
+    if cursor.fetchone():
+        return Response({"error": "This email is already registered."}, status=status.HTTP_400_BAD_REQUEST)
+    cursor.close()
 
-    # Generate OTP
     otp = generate_otp()
 
-    # Get all fields
     fields = {
         "first_name": request.data.get("first_name", ""),
         "middle_name": request.data.get("middle_name", ""),
@@ -259,41 +353,66 @@ def student_register_request_otp(request):
         "student_type": "discontinue",
         "student_photo_path": request.data.get("student_photo_path", ""),
     }
-    print(request.data.get("contact_number_1", ""))
-    sql = """
-    INSERT INTO eduapp.msa_registerd_student (
-        first_name, middle_name, last_name, date_of_birth,
-        contact_number_1, contact_number_2, student_class,
-        school_or_college_name, board_or_university_name,
-        address, city, district, state, pin, notes,
-        email, student_type, student_photo_path
-    )
-    SELECT * FROM (
-        SELECT %s AS first_name,
-               %s AS middle_name,
-               %s AS last_name,
-               %s AS date_of_birth,
-               %s AS contact_number_1,
-               %s AS contact_number_2,
-               %s AS student_class,
-               %s AS school_or_college_name,
-               %s AS board_or_university_name,
-               %s AS address,
-               %s AS city,
-               %s AS district,
-               %s AS state,
-               %s AS pin,
-               %s AS notes,
-               %s AS email,
-               %s AS student_type,
-               %s AS student_photo_path
-    ) AS tmp
-    WHERE NOT EXISTS (
-        SELECT 1 FROM eduapp.msa_registerd_student WHERE email = %s
-    );
-    """
 
-    print(sql)
+    # Save OTP + student data in cache
+    cache.set(f"student_otp_{email}", {
+        "otp": otp,
+        "data": fields
+    }, timeout=OTP_EXPIRY_MINUTES * 60)
+
+    send_otp_email(email, otp)
+
+    return Response({"message": "OTP sent to email."}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def student_register_verify_otp(request):
+    email = request.data.get("email")
+    input_otp = request.data.get("otp")
+
+    if not email or not input_otp:
+        return Response({"error": "Email and OTP are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    cached = cache.get(f"student_otp_{email}")
+    if not cached:
+        return Response({"error": "OTP expired or not requested."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if cached["otp"] != input_otp:
+        return Response({"error": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+    fields = cached["data"]
+    sql = """
+        INSERT INTO eduapp.msa_registerd_student (
+            first_name, middle_name, last_name, date_of_birth,
+            contact_number_1, contact_number_2, student_class,
+            school_or_college_name, board_or_university_name,
+            address, city, district, state, pin, notes,
+            email, student_type, student_photo_path, is_verified 
+        )
+        SELECT * FROM (
+            SELECT %s AS first_name,
+                   %s AS middle_name,
+                   %s AS last_name,
+                   %s AS date_of_birth,
+                   %s AS contact_number_1,
+                   %s AS contact_number_2,
+                   %s AS student_class,
+                   %s AS school_or_college_name,
+                   %s AS board_or_university_name,
+                   %s AS address,
+                   %s AS city,
+                   %s AS district,
+                   %s AS state,
+                   %s AS pin,
+                   %s AS notes,
+                   %s AS email,
+                   %s AS student_type,
+                   %s AS student_photo_path,
+                   1
+        ) AS tmp
+        WHERE NOT EXISTS (
+            SELECT 1 FROM eduapp.msa_registerd_student WHERE email = %s
+        );
+    """
 
     params = list(fields.values()) + [email]
 
@@ -303,22 +422,14 @@ def student_register_request_otp(request):
         connection.commit()
         cursor.close()
 
-        # Cache OTP
-        otp_data = {
-            "otp": otp,
-            "data": fields
-        }
-        cache.set(f"student_otp_{email}", otp_data, timeout=OTP_EXPIRY_MINUTES * 60)
+        # Clear the OTP cache after success
+        cache.delete(f"student_otp_{email}")
 
-        # Send OTP
-        send_otp_email(email, otp)
-
-        return Response({"message": "OTP sent to email."}, status=status.HTTP_200_OK)
+        return Response({"message": "Registration successful."}, status=status.HTTP_201_CREATED)
 
     except Exception as e:
         print(f"Database error: {e}")
         return Response({"error": "Failed to register student."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 def generate_jwt_for_student(user):
     refresh = RefreshToken.for_user(user)
