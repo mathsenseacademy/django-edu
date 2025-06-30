@@ -754,7 +754,8 @@ def update_student_detail(request):
             "is_verified": int(request.data.get("is_verified", False)),
             "is_activate": int(request.data.get("is_activate", False)),
             "date_of_birth": request.data.get("date_of_birth", None),
-            "student_photo_path": request.data.get("student_photo_path", None)
+            "student_photo_path": request.data.get("student_photo_path", None),
+            "batch_id": request.data.get("batch_id", None),
         }
 
         sql = """
@@ -778,7 +779,8 @@ def update_student_detail(request):
                 is_verified = %s,
                 is_activate = %s,
                 date_of_birth = %s,
-                student_photo_path = %s
+                student_photo_path = %s,
+                batch_id = %s
             WHERE ID = %s
         """
 
@@ -803,6 +805,7 @@ def update_student_detail(request):
             fields["is_activate"],
             fields["date_of_birth"],
             fields["student_photo_path"],
+            fields["batch_id"],
             student_id
         ])
         connection.commit()
@@ -894,17 +897,39 @@ def verify_student_login_otp(request):
         if not student:
             return Response({"error": "Student not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        student_id = student[0]
+        # student_id = student[0]
+        student_data = {
+            "ID": student[0],
+            "first_name": student[1],
+            "middle_name": student[2],
+            "last_name": student[3],
+            "date_of_birth": student[4].strftime("%Y-%m-%d") if student[4] else None,
+            "contact_number_1": student[5],
+            "contact_number_2": student[6],
+            "student_class": student[7],
+            "school_or_college_name": student[8],
+            "board_or_university_name": student[9],
+            "address": student[10],
+            "city": student[11],
+            "district": student[12],
+            "state": student[13],
+            "pin": student[14],
+            "notes": student[15],
+            "email": student[16],
+            "student_type": student[17],
+            "student_photo_path": student[18]
+        }
+
 
         # Fake user object
         class StudentUser:
-            def __init__(self, id):
-                self.id = id
+            def __init__(self):
+                self.id = student_data["ID"]
             @property
             def is_authenticated(self):
                 return True
 
-        student_user = StudentUser(student_id)
+        student_user = StudentUser()
 
         refresh = RefreshToken.for_user(student_user)
 
@@ -916,7 +941,26 @@ def verify_student_login_otp(request):
         return Response({
             "access": str(refresh.access_token),
             "refresh": str(refresh),
-            "student_id": student_id
+            "student_id": student_data["ID"],
+            "first_name": student_data["first_name"],   
+            "middle_name": student_data["middle_name"],
+            "last_name": student_data["last_name"],
+            "date_of_birth": student_data["date_of_birth"],
+            "contact_number_1": student_data["contact_number_1"],
+            "contact_number_2": student_data["contact_number_2"],
+            "student_class": student_data["student_class"],
+            "school_or_college_name": student_data["school_or_college_name"],
+            "board_or_university_name": student_data["board_or_university_name"],
+            "address": student_data["address"],
+            "city": student_data["city"],
+            "district": student_data["district"],
+            "state": student_data["state"],
+            "pin": student_data["pin"],
+            "notes": student_data["notes"],
+            "email": student_data["email"],
+            "student_type": student_data["student_type"],
+            "student_photo_path": student_data["student_photo_path"]
+                    
         }, status=status.HTTP_200_OK)
 
     except Exception as e:
