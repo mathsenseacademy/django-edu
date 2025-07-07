@@ -888,37 +888,39 @@ def verify_student_login_otp(request):
         # Get student ID
         cursor.execute("""SELECT ID, 
                        first_name, middle_name, last_name, date_of_birth,
-            contact_number_1, contact_number_2, student_class,
+            contact_number_1, contact_number_2,
+            student_class, batch_id, is_verified,
             school_or_college_name, board_or_university_name,
-            address, city, district, state, pin, notes,
+            address, city, district, state, pin, 
             email, student_type, student_photo_path
                        FROM eduapp.msa_registerd_student WHERE email = %s""", [email])
+        
         student = cursor.fetchone()
         if not student:
             return Response({"error": "Student not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # student_id = student[0]
+        
         student_data = {
-            "ID": student[0],
-            "first_name": student[1],
-            "middle_name": student[2],
-            "last_name": student[3],
-            "date_of_birth": student[4].strftime("%Y-%m-%d") if student[4] else None,
-            "contact_number_1": student[5],
-            "contact_number_2": student[6],
-            "student_class": student[7],
-            "school_or_college_name": student[8],
-            "board_or_university_name": student[9],
-            "address": student[10],
-            "city": student[11],
-            "district": student[12],
-            "state": student[13],
-            "pin": student[14],
-            "notes": student[15],
-            "email": student[16],
-            "student_type": student[17],
-            "student_photo_path": student[18]
-        }
+    "ID": student[0],
+    "first_name": student[1],
+    "middle_name": student[2],
+    "last_name": student[3],
+    "date_of_birth": student[4].strftime("%Y-%m-%d") if student[4] else None,
+    "contact_number_1": student[5],
+    "contact_number_2": student[6],
+    "student_class": student[7],
+    "batch_id": student[8],
+    "is_verified": student[9],
+    "school_or_college_name": student[10],
+    "board_or_university_name": student[11],
+    "address": student[12],
+    "city": student[13],
+    "district": student[14],
+    "state": student[15],
+    "pin": student[16],
+    "email": student[17],
+    "student_type": student[18],
+    "student_photo_path": student[19]  # ✅ last valid index
+}
 
 
         # Fake user object
@@ -939,29 +941,29 @@ def verify_student_login_otp(request):
         cursor.close()
 
         return Response({
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
-            "student_id": student_data["ID"],
-            "first_name": student_data["first_name"],   
-            "middle_name": student_data["middle_name"],
-            "last_name": student_data["last_name"],
-            "date_of_birth": student_data["date_of_birth"],
-            "contact_number_1": student_data["contact_number_1"],
-            "contact_number_2": student_data["contact_number_2"],
-            "student_class": student_data["student_class"],
-            "school_or_college_name": student_data["school_or_college_name"],
-            "board_or_university_name": student_data["board_or_university_name"],
-            "address": student_data["address"],
-            "city": student_data["city"],
-            "district": student_data["district"],
-            "state": student_data["state"],
-            "pin": student_data["pin"],
-            "notes": student_data["notes"],
-            "email": student_data["email"],
-            "student_type": student_data["student_type"],
-            "student_photo_path": student_data["student_photo_path"]
-                    
-        }, status=status.HTTP_200_OK)
+    "access": str(refresh.access_token),
+    "refresh": str(refresh),
+    "student_id": student_data["ID"],
+    "first_name": student_data["first_name"],   
+    "middle_name": student_data["middle_name"],
+    "last_name": student_data["last_name"],
+    "date_of_birth": student_data["date_of_birth"],
+    "contact_number_1": student_data["contact_number_1"],
+    "contact_number_2": student_data["contact_number_2"],
+    "student_class": student_data["student_class"],
+    "batch_id": student_data["batch_id"],
+    "is_verified": student_data["is_verified"],
+    "school_or_college_name": student_data["school_or_college_name"],
+    "board_or_university_name": student_data["board_or_university_name"],
+    "address": student_data["address"],
+    "city": student_data["city"],
+    "district": student_data["district"],
+    "state": student_data["state"],
+    "pin": student_data["pin"],
+    "email": student_data["email"],
+    "student_type": student_data["student_type"],
+    "student_photo_path": student_data["student_photo_path"]
+}, status=status.HTTP_200_OK)
 
     except Exception as e:
         print(f"OTP verification error: {e}")
