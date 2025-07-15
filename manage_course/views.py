@@ -251,8 +251,6 @@ def courses_detail_show_public(request):
 
             s.ID AS student_id,
             s.first_name,
-            s.middle_name,
-            s.last_name,
             s.student_photo_path
 
         FROM eduapp.msa_course AS c
@@ -263,6 +261,7 @@ def courses_detail_show_public(request):
             AND s.is_activate = 1 AND s.is_verified = 1
         WHERE c.ID = %s AND c.show_in_forntpage = 1
     """
+    print(sql)
     cursor.execute(sql, [course_id]) #this id ic course ID
     row = cursor.fetchone()
 
@@ -282,9 +281,7 @@ def courses_detail_show_public(request):
         "student_of_the_week": {
             "student_id": row[8],
             "first_name": row[9],
-            "middle_name": row[10],
-            "last_name": row[11],
-            "student_photo_path": row[12]
+            "student_photo_path": row[10]
         } if row[8] else None,
         "curriculums": [],
         "classroom_essentials": []
