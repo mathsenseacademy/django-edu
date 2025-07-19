@@ -24,4 +24,5 @@ urlpatterns = [
     path('administrator/', include('administrator.urls')),
     path('coursemanegment/', include('manage_course.urls')),
     path('examsetup/', include('examportal.urls')),
+    path('batchmanegment/', include('manage_batch.urls')),
 ]
