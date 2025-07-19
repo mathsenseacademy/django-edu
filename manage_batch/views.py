@@ -9,7 +9,6 @@ import random
 from django.db import connection
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import JSONParser
 
@@ -26,7 +25,7 @@ from email.mime.text import MIMEText
 import smtplib
 from datetime import datetime
 from django.utils import timezone
-
+from rest_framework import status
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -177,7 +176,8 @@ def batch_detail_by_id(request):
             "batch_name": batch_row[1],
             "description": batch_row[2],
             "course_name": batch_row[3],
-            "schedules": []
+            "schedules": [],
+            "fees": []
         }
 
         # Fetch schedules for the batch
@@ -198,6 +198,21 @@ def batch_detail_by_id(request):
                 "weekday": row[0],
                 "start_time": str(row[1]),
                 "end_time": str(row[2]) if row[2] else None
+            })
+        
+        # Fetch fees for the batch
+        cursor.execute("""
+            SELECT fee_title, amount, due_date, fee_type
+            FROM eduapp.msa_batch_fee
+            WHERE batch_id = %s
+        """, [batch_id])
+        fee_rows = cursor.fetchall()
+        for f in fee_rows:
+            result["fees"].append({
+                "fee_title": f[0],
+                "amount": str(f[1]),
+                "due_date": str(f[2]) if f[2] else None,
+                "fee_type": f[3]
             })
 
         return Response(result, status=status.HTTP_200_OK)
@@ -258,3 +273,119 @@ def update_batch(request):
     except Exception as e:
         print(f"Error: {e}")
         return Response({"error": "Failed to update batch."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_batch_fee(request):
+    data = request.data
+    batch_id = data.get("batch_id")
+    title = data.get("fee_title")
+    amount = data.get("amount")
+    due_date = data.get("due_date")
+    fee_type = data.get("fee_type", "one-time")
+
+    if not batch_id or not title or not amount:
+        return Response({"error": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        cursor = connection.cursor()
+        cursor.execute("""
+            INSERT INTO eduapp.msa_batch_fee (batch_id, fee_title, amount, due_date, fee_type)
+            VALUES (%s, %s, %s, %s, %s)
+        """, [batch_id, title, amount, due_date, fee_type])
+        connection.commit()
+        cursor.close()
+        return Response({"message": "Batch fee added."}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response({"error": "Failed to add batch fee."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def student_fee_status_by_batch(request):
+#     batch_id = request.data.get("batch_id")
+#     if not batch_id:
+#         return Response({"error": "Batch ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+#     try:
+#         cursor = connection.cursor()
+
+#         # Step 1: Get students mapped to this batch
+#         cursor.execute("""
+#             SELECT s.id, s.first_name, s.last_name
+#             FROM eduapp.msa_registerd_student s
+#             JOIN eduapp.msa_batch sb ON s.id = sb.batch_id           
+
+#             WHERE sb.id = %s
+#         """, [batch_id])
+#         students = cursor.fetchall()
+
+#         # Step 2: Get all fees assigned to this batch
+#         cursor.execute("""
+#             SELECT id, fee_title, amount
+#             FROM eduapp.msa_batch_fee
+#             WHERE batch_id = %s
+#         """, [batch_id])
+#         fees = cursor.fetchall()
+
+#         # Step 3: Get existing fee payments for these students
+#         fee_ids = [f[0] for f in fees]
+#         if fee_ids:
+#             format_strings = ','.join(['%s'] * len(fee_ids))
+#             cursor.execute(f"""
+#                 SELECT student_id, batch_fee_id, payment_status, payment_date, transaction_id
+#                 FROM eduapp.msa_student_batch_fee
+#                 WHERE batch_fee_id IN ({format_strings})
+#             """, fee_ids)
+#             payment_rows = cursor.fetchall()
+#         else:
+#             payment_rows = []
+
+#         # Step 4: Create lookup map
+#         payment_map = {}
+#         for row in payment_rows:
+#             student_id, fee_id, status, pay_date, txn_id = row
+#             key = (student_id, fee_id)
+#             payment_map[key] = {
+#                 "status": status,
+#                 "payment_date": str(pay_date) if pay_date else None,
+#                 "transaction_id": txn_id
+#             }
+
+#         # Step 5: Assemble result
+#         result = []
+#         for student in students:
+#             student_id, first_name, last_name = student
+#             fee_data = []
+
+#             for fee in fees:
+#                 fee_id, title, amount = fee
+#                 key = (student_id, fee_id)
+#                 payment = payment_map.get(key, {
+#                     "status": "unpaid",
+#                     "payment_date": None,
+#                     "transaction_id": None
+#                 })
+
+#                 fee_data.append({
+#                     "fee_title": title,
+#                     "amount": str(amount),
+#                     "payment_status": payment["status"],
+#                     "payment_date": payment["payment_date"],
+#                     "transaction_id": payment["transaction_id"]
+#                 })
+
+#             result.append({
+#                 "student_id": student_id,
+#                 "name": f"{first_name} {last_name}",
+#                 "fees": fee_data
+#             })
+
+#         return Response(result, status=status.HTTP_200_OK)
+
+#     except Exception as e:
+#         print(f"Error: {e}")
+#         from rest_framework import status
+#         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
