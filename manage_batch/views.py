@@ -466,6 +466,8 @@ def student_fee_status_by_batch(request):
         else:
             payment_rows = []
 
+        if payment_rows is None:
+            return Response({"message": "No fee payments found for this batch."}, status=status.HTTP_404_NOT_FOUND)     
         # Step 4: Create lookup map
         payment_map = {}
         for row in payment_rows:
@@ -506,10 +508,9 @@ def student_fee_status_by_batch(request):
                 "fees": fee_data
             })
 
-        return Response(result, status=status.HTTP_200_OK)
+        return Response(result, status=200)
 
     except Exception as e:
         print(f"Error: {e}")
-        from rest_framework import status
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"error": str(e)}, status=500)
 

@@ -9,5 +9,5 @@ urlpatterns = [
     path('all_batch_fee/', views.all_batch_fee),
     path('batch_fee_by_id/', views.update_fee_by_id),
     path('add_student_fee_payment/', views.add_student_fee_payment),
-    # path('student_fee_status_by_batch/', views.student_fee_status_by_batch),
+    path('student_fee_status_by_batch/', views.student_fee_status_by_batch),
 ]
