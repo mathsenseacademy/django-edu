@@ -685,7 +685,7 @@ def student_detail_by_id(request):
                 contact_number_1, contact_number_2, student_class,
                 school_or_college_name, board_or_university_name,
                 address, city, district, state, pin, notes,
-                is_verified, is_activate, date_of_birth, student_photo_path
+                is_verified, is_activate, date_of_birth, student_photo_path,batch_id
             FROM
                 eduapp.msa_registerd_student
             WHERE ID = %s
