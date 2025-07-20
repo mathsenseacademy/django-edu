@@ -298,97 +298,6 @@ def add_batch_fee(request):
         print(f"Error: {e}")
         return Response({"error": "Failed to add batch fee."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-
-#studentwise fee status by batch
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def student_fee_status_by_batch(request):
-#     batch_id = request.data.get("batch_id")
-#     if not batch_id:
-#         return Response({"error": "Batch ID is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-#     try:
-#         cursor = connection.cursor()
-
-#         # Step 1: Get students mapped to this batch
-#         cursor.execute("""
-#             SELECT s.id, s.first_name, s.last_name
-#             FROM eduapp.msa_registerd_student s
-#             JOIN eduapp.msa_batch sb ON s.id = sb.batch_id           
-
-#             WHERE sb.id = %s
-#         """, [batch_id])
-#         students = cursor.fetchall()
-
-#         # Step 2: Get all fees assigned to this batch
-#         cursor.execute("""
-#             SELECT id, fee_title, amount
-#             FROM eduapp.msa_batch_fee
-#             WHERE batch_id = %s
-#         """, [batch_id])
-#         fees = cursor.fetchall()
-
-#         # Step 3: Get existing fee payments for these students
-#         fee_ids = [f[0] for f in fees]
-#         if fee_ids:
-#             format_strings = ','.join(['%s'] * len(fee_ids))
-#             cursor.execute(f"""
-#                 SELECT student_id, batch_fee_id, payment_status, payment_date, transaction_id
-#                 FROM eduapp.msa_student_batch_fee
-#                 WHERE batch_fee_id IN ({format_strings})
-#             """, fee_ids)
-#             payment_rows = cursor.fetchall()
-#         else:
-#             payment_rows = []
-
-#         # Step 4: Create lookup map
-#         payment_map = {}
-#         for row in payment_rows:
-#             student_id, fee_id, status, pay_date, txn_id = row
-#             key = (student_id, fee_id)
-#             payment_map[key] = {
-#                 "status": status,
-#                 "payment_date": str(pay_date) if pay_date else None,
-#                 "transaction_id": txn_id
-#             }
-
-#         # Step 5: Assemble result
-#         result = []
-#         for student in students:
-#             student_id, first_name, last_name = student
-#             fee_data = []
-
-#             for fee in fees:
-#                 fee_id, title, amount = fee
-#                 key = (student_id, fee_id)
-#                 payment = payment_map.get(key, {
-#                     "status": "unpaid",
-#                     "payment_date": None,
-#                     "transaction_id": None
-#                 })
-
-#                 fee_data.append({
-#                     "fee_title": title,
-#                     "amount": str(amount),
-#                     "payment_status": payment["status"],
-#                     "payment_date": payment["payment_date"],
-#                     "transaction_id": payment["transaction_id"]
-#                 })
-
-#             result.append({
-#                 "student_id": student_id,
-#                 "name": f"{first_name} {last_name}",
-#                 "fees": fee_data
-#             })
-
-#         return Response(result, status=status.HTTP_200_OK)
-
-#     except Exception as e:
-#         print(f"Error: {e}")
-#         from rest_framework import status
-#         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 # 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -410,7 +319,21 @@ def all_batch_fee(request):
         """)
 
         batch_fees = cursor.fetchall()
-        return Response(batch_fees, status=status.HTTP_200_OK)
+        
+
+        # Convert to dict list
+        batch_fee_list = []
+        for row in batch_fees:
+            batch_fee_list.append({
+                "batch_fee_id": row[0],
+                "fee_title": row[1],
+                "amount": row[2],
+                "due_date": row[3],
+                "fee_type": row[4],
+                "batch_name": row[5],
+                "batch_id": row[6]
+            })
+        return Response(batch_fees, status= status.HTTP_200_OK)
 
     except Exception as e:
         print(f"Error: {e}")
@@ -496,3 +419,97 @@ def add_student_fee_payment(request):
     except Exception as e:
         print(f"Error: {e}")
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# studentwise fee status by batch
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def student_fee_status_by_batch(request):
+    batch_id = request.data.get("batch_id")
+    if not batch_id:
+        return Response({"error": "Batch ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        cursor = connection.cursor()
+
+        # Step 1: Get students mapped to this batch
+        cursor.execute("""
+            SELECT student.id, student.first_name, student.last_name
+            FROM eduapp.msa_registerd_student student
+            JOIN eduapp.msa_batch batch ON student.batch_id = batch.ID            
+
+            WHERE batch.ID = %s
+        """, [batch_id])
+        students = cursor.fetchall()
+
+        # Step 2: Get all fees assigned to this batch
+        cursor.execute("""
+            SELECT id, fee_title, amount
+            FROM eduapp.msa_batch_fee
+            WHERE batch_id = %s
+        """, [batch_id])
+        fees = cursor.fetchall()
+
+        # Step 3: Get existing fee payments for these students
+        fee_ids = [f[0] for f in fees]
+        if fee_ids:
+            format_strings = ','.join(['%s'] * len(fee_ids))
+            cursor.execute(f"""
+                SELECT student_id, batch_fee_id, payment_status, payment_date, transaction_id
+                FROM eduapp.msa_student_batch_fee
+                WHERE batch_fee_id IN ({format_strings})
+            """, fee_ids)
+            print(f"""SELECT student_id, batch_fee_id, payment_status, payment_date, transaction_id
+                FROM eduapp.msa_student_batch_fee
+                WHERE batch_fee_id IN ({format_strings})""")
+            payment_rows = cursor.fetchall()
+        else:
+            payment_rows = []
+
+        # Step 4: Create lookup map
+        payment_map = {}
+        for row in payment_rows:
+            student_id, fee_id, status, pay_date, txn_id = row
+            key = (student_id, fee_id)
+            payment_map[key] = {
+                "status": status,
+                "payment_date": str(pay_date) if pay_date else None,
+                "transaction_id": txn_id
+            }
+
+        # Step 5: Assemble result
+        result = []
+        for student in students:
+            student_id, first_name, last_name = student
+            fee_data = []
+
+            for fee in fees:
+                fee_id, title, amount = fee
+                key = (student_id, fee_id)
+                payment = payment_map.get(key, {
+                    "status": "unpaid",
+                    "payment_date": None,
+                    "transaction_id": None
+                })
+
+                fee_data.append({
+                    "fee_title": title,
+                    "amount": str(amount),
+                    "payment_status": payment["status"],
+                    "payment_date": payment["payment_date"],
+                    "transaction_id": payment["transaction_id"]
+                })
+
+            result.append({
+                "student_id": student_id,
+                "name": f"{first_name} {last_name}",
+                "fees": fee_data
+            })
+
+        return Response(result, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        from rest_framework import status
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
