@@ -718,7 +718,9 @@ def student_detail_by_id(request):
             "is_verified": bool(row[17]),
             "is_active": bool(row[18]),
             "date_of_birth": row[19].strftime("%Y-%m-%d") if row[19] else None,
-            "student_photo_path": row[20] if row[20] else None
+            "student_photo_path": row[20] if row[20] else None,
+            "batch_id": row[21] 
+
         }
 
         return Response(student, status=status.HTTP_200_OK)
