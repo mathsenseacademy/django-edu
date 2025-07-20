@@ -141,7 +141,6 @@ def all_batches_with_schedule(request):
         print(f"Error: {e}")
         return Response({"error": "Failed to fetch batch data"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def batch_detail_by_id(request):
@@ -221,7 +220,6 @@ def batch_detail_by_id(request):
         print(f"Error: {e}")
         return Response({"error": "Failed to retrieve batch details."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def update_batch(request):
@@ -274,7 +272,6 @@ def update_batch(request):
         print(f"Error: {e}")
         return Response({"error": "Failed to update batch."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_batch_fee(request):
@@ -302,6 +299,8 @@ def add_batch_fee(request):
         return Response({"error": "Failed to add batch fee."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+
+#studentwise fee status by batch
 # @api_view(['POST'])
 # @permission_classes([IsAuthenticated])
 # def student_fee_status_by_batch(request):
@@ -389,3 +388,111 @@ def add_batch_fee(request):
 #         print(f"Error: {e}")
 #         from rest_framework import status
 #         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def all_batch_fee(request):
+    try:
+        cursor = connection.cursor()
+        cursor.execute("""  
+            SELECT  
+                bf.id AS batch_fee_id,
+                bf.fee_title,
+                bf.amount,
+                bf.due_date,
+                bf.fee_type,
+                b.batch_name,
+                b.id AS batch_id
+            FROM 
+                eduapp.msa_batch_fee bf
+            JOIN eduapp.msa_batch b ON bf.batch_id = b.id
+        """)
+
+        batch_fees = cursor.fetchall()
+        return Response(batch_fees, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response({"error": "Database connection failed."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST', 'PUT'])
+@permission_classes([IsAuthenticated])
+def update_fee_by_id(request):
+    if request.method == 'POST':
+        try:
+            batch_fee_id = request.data.get("batch_fee_id")
+            if not batch_fee_id:
+                return Response({"error": "Missing batch_fee_id."}, status=status.HTTP_400_BAD_REQUEST)
+
+            cursor = connection.cursor()
+            cursor.execute("""  
+                SELECT  
+                    bf.id AS batch_fee_id,
+                    bf.fee_title,
+                    bf.amount,
+                    bf.due_date,
+                    bf.fee_type,
+                    b.batch_name,
+                    b.id AS batch_id
+                FROM 
+                    eduapp.msa_batch_fee bf
+                JOIN eduapp.msa_batch b ON bf.batch_id = b.id
+            """)
+
+            batch_fees = cursor.fetchall()
+            return Response(batch_fees, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"Error: {e}")
+            return Response({"error": "Database connection failed."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    elif request.method == 'PUT':
+        try:
+            data = request.data
+            batch_fee_id = data.get("batch_fee_id")
+            fee_title = data.get("fee_title")
+            amount = data.get("amount")
+            due_date = data.get("due_date")
+            fee_type = data.get("fee_type", "one-time")
+
+            if not all([batch_fee_id, fee_title, amount, due_date]):
+                return Response({"error": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST)
+
+            cursor = connection.cursor()
+            cursor.execute("""
+                UPDATE eduapp.msa_batch_fee
+                SET fee_title = %s, amount = %s, due_date = %s, fee_type = %s
+                WHERE id = %s
+            """, (fee_title, amount, due_date, fee_type, batch_fee_id))
+            connection.commit()
+            return Response({"message": "Batch fee updated successfully."}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"Error: {e}")
+            return Response({"error": "Database connection failed."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# recived payment or add data msa_student_batch_fee
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_student_fee_payment(request):
+    data = request.data
+
+    student_id = data.get("student_id")
+    batch_fee_id = data.get("batch_fee_id") 
+    payment_status = data.get("payment_status", "paid")
+    payment_date = data.get("payment_date", timezone.now())
+    transaction_id = data.get("transaction_id", None)
+    if not student_id or not batch_fee_id:
+        return Response({"error": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        cursor = connection.cursor()
+        cursor.execute("""
+            INSERT INTO eduapp.msa_student_batch_fee (student_id, batch_fee_id, payment_status, payment_date, transaction_id)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (student_id, batch_fee_id, payment_status, payment_date, transaction_id))
+        connection.commit()
+        return Response({"message": "Payment recorded successfully."}, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
