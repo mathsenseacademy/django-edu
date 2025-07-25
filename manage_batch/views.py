@@ -514,3 +514,72 @@ def student_fee_status_by_batch(request):
         print(f"Error: {e}")
         return Response({"error": str(e)}, status=500)
 
+#add student fee status 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_student_fee_status(request):
+    data = request.data
+    student_id = data.get("student_id")
+    batch_fee_id = data.get("batch_fee_id")
+    payment_status = data.get("payment_status", "unpaid")
+    payment_date = data.get("payment_date", timezone.now())
+    transaction_id = data.get("transaction_id", None)
+
+    if not student_id or not batch_fee_id:
+        return Response({"error": "Missing required fields."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        cursor = connection.cursor()
+        cursor.execute("""
+            INSERT INTO eduapp.msa_student_batch_fee (student_id, batch_fee_id, payment_status, payment_date, transaction_id)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (student_id, batch_fee_id, payment_status, payment_date, transaction_id))
+        connection.commit()
+        return Response({"message": "Student fee status added successfully."}, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# show month wise batch wise fee status
+@api_view(['GET'])  
+@permission_classes([IsAuthenticated])
+def month_wise_batch_fee_status(request):
+    try:
+        cursor = connection.cursor()
+        cursor.execute("""
+            SELECT 
+                DATE_FORMAT(bf.due_date, '%m') AS month,
+                DATE_FORMAT(bf.due_date, '%Y') AS year,
+                b.batch_name,
+                SUM(bf.amount) AS total_fee,
+                SUM(CASE WHEN sf.payment_status = 'paid' THEN bf.amount ELSE 0 END) AS total_paid,
+                COUNT(sf.id) AS total_payments
+            FROM 
+                eduapp.msa_batch_fee bf
+            JOIN 
+                eduapp.msa_batch b ON bf.batch_id = b.id
+            LEFT JOIN 
+                eduapp.msa_student_batch_fee sf ON bf.id = sf.batch_fee_id
+            GROUP BY 
+                month, b.batch_name
+            ORDER BY 
+                month DESC, b.batch_name
+        """)
+        results = cursor.fetchall()
+
+        fee_status_list = []
+        for row in results:
+            fee_status_list.append({
+                "month": row[0],
+                "batch_name": row[1],
+                "total_fee": str(row[2]),
+                "total_paid": str(row[3]),
+                "total_payments": row[4]
+            })
+
+        return Response(fee_status_list, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
