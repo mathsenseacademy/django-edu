@@ -541,7 +541,8 @@ def add_student_fee_status(request):
         print(f"Error: {e}")
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# show month wise batch wise fee status
+# show month wise batch wise fee status based on student payment
+
 @api_view(['GET'])  
 @permission_classes([IsAuthenticated])
 def month_wise_batch_fee_status(request):
@@ -576,6 +577,122 @@ def month_wise_batch_fee_status(request):
                 "total_fee": str(row[2]),
                 "total_paid": str(row[3]),
                 "total_payments": row[4]
+            })
+
+        return Response(fee_status_list, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# show month wise batch wise fee status based on student details, month year batch name must be input batch name must be batch id
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def month_wise_batch_fee_status_by_input(request):
+#     month = request.data.get("month")
+#     year = request.data.get("year")
+#     batch_id = request.data.get("batch_id")
+
+#     if not month or not year or not batch_id:
+#         return Response({"error": "Month, year and batch_id are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+#     try:
+#         cursor = connection.cursor()
+#         cursor.execute("""
+#             SELECT 
+#                 DATE_FORMAT(bf.due_date, '%d') AS day,
+#                 b.batch_name,
+#                 bf.fee_title,
+#                 bf.amount,
+#                 sf.payment_status,
+#                 sf.payment_date
+#             FROM 
+#                 eduapp.msa_batch_fee bf
+#             JOIN 
+#                 eduapp.msa_batch b ON bf.batch_id = b.id
+#             LEFT JOIN 
+#                 eduapp.msa_student_batch_fee sf ON bf.id = sf.batch_fee_id
+#             WHERE 
+#                 DATE_FORMAT(bf.due_date, '%m') = %s AND 
+#                 DATE_FORMAT(bf.due_date, '%Y') = %s AND 
+#                 b.id = %s
+#             ORDER BY 
+#                 day
+#         """, [month, year, batch_id])
+#         results = cursor.fetchall()
+
+#         fee_status_list = []
+#         for row in results:
+#             fee_status_list.append({
+#                 "day": row[0],
+#                 "batch_name": row[1],
+#                 "fee_title": row[2],
+#                 "amount": str(row[3]),
+#                 "payment_status": row[4],
+#                 "payment_date": str(row[5]) if row[5] else None
+#             })
+
+#         return Response(fee_status_list, status=status.HTTP_200_OK)
+
+#     except Exception as e:
+#         print(f"Error: {e}")
+#         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def month_wise_batch_fee_status_by_input(request):
+    try:
+        month = str(request.data.get("month")).zfill(2)  # Ensure format "01" to "12"
+        year = str(request.data.get("year"))
+        batch_id = int(request.data.get("batch_id"))
+
+        if not month or not year or not batch_id:
+            return Response({"error": "Month, year and batch_id are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        cursor = connection.cursor()
+        cursor.execute("""
+                        SELECT 
+    DATE_FORMAT(bf.due_date, '%%d') AS day,
+    b.batch_name,
+    bf.fee_title,
+    bf.amount,
+    rs.first_name,
+    rs.middle_name,
+    rs.last_name,
+    sf.payment_status,
+    sf.payment_date
+FROM 
+    eduapp.msa_student_batch_fee sf
+JOIN 
+    eduapp.msa_batch_fee bf ON sf.batch_fee_id = bf.id
+JOIN 
+    eduapp.msa_batch b ON bf.batch_id = b.id
+JOIN 
+    eduapp.msa_registerd_student rs ON sf.student_id = rs.id
+WHERE 
+    DATE_FORMAT(bf.due_date, '%%m') = %s AND 
+    DATE_FORMAT(bf.due_date, '%%Y') = %s AND 
+    b.id = %s
+ORDER BY 
+    day;
+
+
+        """, [month, year, batch_id])
+        print(month, year, batch_id)
+        results = cursor.fetchall()
+
+        fee_status_list = []
+        for row in results:
+            fee_status_list.append({
+                "day": row[0],
+                "batch_name": row[1],
+                "fee_title": row[2],
+                "amount": str(row[3]),
+                "student_fname": row[4],
+                "student_mname": row[5],
+                "student_lname": row[6],
+                "payment_status": row[7],
+                "payment_date": str(row[8]) if row[8] else None
             })
 
         return Response(fee_status_list, status=status.HTTP_200_OK)

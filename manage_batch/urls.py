@@ -12,4 +12,5 @@ urlpatterns = [
     path('student_fee_status_by_batch/', views.student_fee_status_by_batch),
     path('add_student_fee_status/', views.add_student_fee_status),
     path('month_wise_batch_fee_status/', views.month_wise_batch_fee_status),
+    path('month_wise_batch_fee_status_by_input/', views.month_wise_batch_fee_status_by_input),
 ]
