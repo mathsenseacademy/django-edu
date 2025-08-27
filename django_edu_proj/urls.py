@@ -25,4 +25,5 @@ urlpatterns = [
     path('coursemanegment/', include('manage_course.urls')),
     path('examsetup/', include('examportal.urls')),
     path('batchmanegment/', include('manage_batch.urls')),
+    path('exam/', include('exams.urls')),
 ]
