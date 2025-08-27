@@ -6,6 +6,7 @@ urlpatterns = [
     path('register/', admin_register),
     path('login/', admin_login),
     path('students/', admin_student_list),
+    # path('admin_student_detail/<int:student_id>/', admin_student_detail),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('createCourseType/', create_course_type, name='cuorse_type'),
     path('courseTypeList/', list_course_types, name='cuorse_type'),

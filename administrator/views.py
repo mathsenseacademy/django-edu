@@ -62,6 +62,16 @@ def admin_student_list(request):
     serializer = StudentSerializer(students, many=True)
     return Response(serializer.data)
 
+# all detail of student see by admin only
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def admin_student_detail(request, student_id):
+#     try:
+#         student = Student.objects.get(id=student_id)
+#         serializer = StudentSerializer(student)
+#         return Response(serializer.data)
+#     except Student.DoesNotExist:
+#         return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['POST'])
 # @authentication_classes([AdminJWTAuthentication])
