@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'administrator',
     'examportal',
     'manage_course',
+    'exams',
 ]
 
 MIDDLEWARE = [
